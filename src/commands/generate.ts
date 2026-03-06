@@ -17,7 +17,7 @@ export const generateCommand = new Command('generate')
   .description('Generate an artifact using AI')
   .argument('<change>', 'Name of the change')
   .argument('[artifact]', 'Artifact to generate (auto-detects next if omitted)')
-  .option('--provider <name>', 'AI provider (openai, anthropic, ollama)')
+  .option('--provider <name>', 'AI provider (openai, anthropic, ollama, claude-code)')
   .option('--model <name>', 'AI model to use')
   .option('--dry-run', 'Show the prompt without calling the AI')
   .option('--output <path>', 'Write output to a specific file instead of default')
@@ -86,7 +86,7 @@ export const generateCommand = new Command('generate')
 
         // Resolve AI config
         const providerName =
-          (options.provider as 'openai' | 'anthropic' | 'ollama') ??
+          (options.provider as 'openai' | 'anthropic' | 'ollama' | 'claude-code') ??
           globalConfig.ai?.provider;
 
         if (!providerName) {

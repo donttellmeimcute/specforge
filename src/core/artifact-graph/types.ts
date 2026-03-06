@@ -159,7 +159,7 @@ export const GlobalConfigSchema = z.object({
   /** AI provider configuration */
   ai: z
     .object({
-      provider: z.enum(['openai', 'anthropic', 'ollama']).optional(),
+      provider: z.enum(['openai', 'anthropic', 'ollama', 'claude-code']).optional(),
       model: z.string().optional(),
       apiKey: z.string().optional(),
       baseUrl: z.string().url().optional(),

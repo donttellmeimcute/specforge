@@ -1,6 +1,6 @@
 /**
  * AI Provider abstraction for generating artifact content.
- * Supports OpenAI, Anthropic, and Ollama (local).
+ * Supports OpenAI, Anthropic, Ollama (local), and Claude Code (local CLI).
  */
 
 export interface AIProvider {
@@ -15,7 +15,7 @@ export interface AIGenerateOptions {
 }
 
 export interface AIConfig {
-  provider: 'openai' | 'anthropic' | 'ollama';
+  provider: 'openai' | 'anthropic' | 'ollama' | 'claude-code';
   model?: string;
   apiKey?: string;
   baseUrl?: string;
@@ -33,6 +33,8 @@ export async function createAIProvider(config: AIConfig): Promise<AIProvider> {
       return createAnthropicProvider(config);
     case 'ollama':
       return createOllamaProvider(config);
+    case 'claude-code':
+      return createClaudeCodeProvider(config);
     default:
       throw new Error(`Unknown AI provider: ${config.provider}`);
   }
@@ -122,6 +124,45 @@ async function createOllamaProvider(config: AIConfig): Promise<AIProvider> {
 
       const data = (await response.json()) as { response: string };
       return data.response;
+    },
+  };
+}
+
+async function createClaudeCodeProvider(config: AIConfig): Promise<AIProvider> {
+  return {
+    name: 'claude-code',
+    async generate(prompt: string, options?: AIGenerateOptions): Promise<string> {
+      const { execFile } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const execFileAsync = promisify(execFile);
+
+      const args = ['--print', prompt];
+
+      const model = options?.model ?? config.model;
+      if (model) {
+        args.unshift('--model', model);
+      }
+
+      const maxTokens = options?.maxTokens;
+      if (maxTokens) {
+        args.unshift('--max-turns', '1');
+      }
+
+      try {
+        const { stdout } = await execFileAsync('claude', args, {
+          maxBuffer: 1024 * 1024 * 10, // 10 MB
+          timeout: 300_000, // 5 min
+        });
+        return stdout;
+      } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
+        if (err.code === 'ENOENT') {
+          throw new Error(
+            'Claude Code CLI not found. Install it with: npm install -g @anthropic-ai/claude-code',
+          );
+        }
+        throw new Error(`Claude Code error: ${err.message ?? String(error)}`);
+      }
     },
   };
 }

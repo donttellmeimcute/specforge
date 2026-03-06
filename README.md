@@ -74,7 +74,7 @@ proposal ──→ specs ──→ tasks
 | **CLI Completa** | 17 comandos para gestionar todo el ciclo de vida |
 | **Grafo de Artefactos** | DAG con ordenamiento topológico (Kahn) y detección de ciclos |
 | **Schemas Flexibles** | Dos schemas built-in (`spec-driven`, `tdd`) + schemas personalizados |
-| **Generación con IA** | Soporte para OpenAI, Anthropic y Ollama (local) |
+| **Generación con IA** | Soporte para OpenAI, Anthropic, Ollama (local) y Claude Code (local CLI) |
 | **Validación Profunda** | Scoring de completitud, consistencia de keywords, verificación de cadena |
 | **Diff & Merge** | Comparar y fusionar specs entre cambios y el main |
 | **Detección de Conflictos** | Identificar cambios concurrentes que tocan los mismos archivos |
@@ -111,8 +111,9 @@ npm link
 ```bash
 # Para generación con IA (instalar según el provider que uses)
 npm install openai              # OpenAI (GPT-4, etc.)
-npm install @anthropic-ai/sdk   # Anthropic (Claude)
+npm install @anthropic-ai/sdk   # Anthropic (Claude API)
 # Ollama no requiere SDK — usa fetch nativo
+# Claude Code CLI: npm install -g @anthropic-ai/claude-code
 
 # Para integración con Git
 npm install simple-git
@@ -430,7 +431,7 @@ Genera un artefacto completo usando IA.
 specforge generate <change> [artifact] [opciones]
 
 Opciones:
-  --provider <name>      Provider de IA: openai, anthropic, ollama
+  --provider <name>      Provider de IA: openai, anthropic, ollama, claude-code
   --model <name>         Modelo específico a usar
   --dry-run              Mostrar el prompt sin llamar la IA
   --output <path>        Escribir en un archivo específico
@@ -446,6 +447,9 @@ specforge generate add-auth proposal --dry-run
 
 # Usar Ollama local
 specforge generate add-auth --provider ollama --model llama3
+
+# Usar Claude Code local (invoca el CLI `claude`)
+specforge generate add-auth --provider claude-code
 
 # Guardar en ubicación custom
 specforge generate add-auth design --output ./docs/auth-design.md
@@ -738,7 +742,7 @@ defaultSchema: spec-driven
 
 # Configuración de IA
 ai:
-  provider: openai          # openai | anthropic | ollama
+  provider: openai          # openai | anthropic | ollama | claude-code
   model: gpt-4-turbo        # Modelo específico
   apiKey: sk-...             # API key (o usar variable de entorno)
   baseUrl: https://api.openai.com/v1/  # URL base (opcional)
@@ -789,6 +793,26 @@ specforge generate my-change --provider ollama --model llama3
 ```
 
 URL por defecto: `http://localhost:11434`
+
+### Claude Code (local CLI)
+
+Usa el CLI de Claude Code instalado localmente. No requiere API key en la configuración de SpecForge — Claude Code gestiona su propia autenticación.
+
+```bash
+# Instalar Claude Code globalmente
+npm install -g @anthropic-ai/claude-code
+
+# Autenticarse (solo la primera vez)
+claude auth
+
+# Generar con Claude Code
+specforge generate my-change --provider claude-code
+
+# Con modelo específico
+specforge generate my-change --provider claude-code --model claude-sonnet-4-20250514
+```
+
+Cuando se usa `claude-code`, SpecForge invoca `claude --print <prompt>` como subproceso, capturando el stdout como resultado. Esto permite usar Claude sin exponer API keys en la configuración, ya que Claude Code maneja su propia sesión.
 
 ### Flujo de generación
 
