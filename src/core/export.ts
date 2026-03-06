@@ -1,0 +1,204 @@
+import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { resolveSpecforgePath } from '../utils/path-utils.js';
+import { loadProjectConfig } from './project-config.js';
+import { resolveSchema } from './artifact-graph/resolver.js';
+import { ArtifactGraph } from './artifact-graph/graph.js';
+import { detectArtifactStates } from './artifact-graph/state.js';
+import { loadChangeMetadata } from './change.js';
+import { CHANGES_DIR, ARCHIVE_DIR } from '../utils/constants.js';
+import { pathExists } from '../utils/file-system.js';
+
+export interface ChangeReport {
+  name: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  artifacts: Array<{
+    id: string;
+    status: string;
+    files: string[];
+  }>;
+  archived: boolean;
+}
+
+export interface ProjectReport {
+  schema: string;
+  context?: string;
+  changes: ChangeReport[];
+  metrics: {
+    totalChanges: number;
+    activeChanges: number;
+    archivedChanges: number;
+    completedChanges: number;
+  };
+}
+
+export async function generateReport(
+  projectRoot: string,
+): Promise<ProjectReport> {
+  const config = await loadProjectConfig(projectRoot);
+  const changesDir = resolveSpecforgePath(projectRoot, CHANGES_DIR);
+  const changes: ChangeReport[] = [];
+
+  if (await pathExists(changesDir)) {
+    const entries = await readdir(changesDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+
+      const isArchive = entry.name === ARCHIVE_DIR;
+      if (isArchive) {
+        // Process archived changes
+        const archiveDir = join(changesDir, ARCHIVE_DIR);
+        if (await pathExists(archiveDir)) {
+          const archiveEntries = await readdir(archiveDir, { withFileTypes: true });
+          for (const ae of archiveEntries) {
+            if (!ae.isDirectory()) continue;
+            const report = await buildChangeReport(
+              ae.name,
+              join(archiveDir, ae.name),
+              config.schema,
+              projectRoot,
+              true,
+            );
+            if (report) changes.push(report);
+          }
+        }
+        continue;
+      }
+
+      const report = await buildChangeReport(
+        entry.name,
+        join(changesDir, entry.name),
+        config.schema,
+        projectRoot,
+        false,
+      );
+      if (report) changes.push(report);
+    }
+  }
+
+  const metrics = {
+    totalChanges: changes.length,
+    activeChanges: changes.filter((c) => c.status === 'active').length,
+    archivedChanges: changes.filter((c) => c.archived).length,
+    completedChanges: changes.filter((c) => c.status === 'completed').length,
+  };
+
+  return {
+    schema: config.schema,
+    context: config.context,
+    changes,
+    metrics,
+  };
+}
+
+async function buildChangeReport(
+  name: string,
+  changeDir: string,
+  defaultSchema: string,
+  projectRoot: string,
+  archived: boolean,
+): Promise<ChangeReport | null> {
+  const metadata = await loadChangeMetadata(changeDir);
+  if (!metadata) return null;
+
+  const schemaName = metadata.schema ?? defaultSchema;
+  try {
+    const schema = await resolveSchema(schemaName, projectRoot);
+    const graph = new ArtifactGraph(schema);
+    await detectArtifactStates(graph, changeDir);
+
+    return {
+      name,
+      status: metadata.status,
+      createdAt: metadata.createdAt,
+      updatedAt: metadata.updatedAt,
+      artifacts: graph.getAllNodes().map((node) => ({
+        id: node.definition.id,
+        status: node.status,
+        files: node.matchedFiles,
+      })),
+      archived,
+    };
+  } catch {
+    return {
+      name,
+      status: metadata.status,
+      createdAt: metadata.createdAt,
+      updatedAt: metadata.updatedAt,
+      artifacts: [],
+      archived,
+    };
+  }
+}
+
+export function reportToJson(report: ProjectReport): string {
+  return JSON.stringify(report, null, 2);
+}
+
+export function reportToHtml(report: ProjectReport): string {
+  const changeRows = report.changes
+    .map(
+      (c) =>
+        `<tr>
+  <td>${escapeHtml(c.name)}</td>
+  <td><span class="status status-${c.status}">${escapeHtml(c.status)}</span></td>
+  <td>${escapeHtml(c.createdAt.split('T')[0] ?? '')}</td>
+  <td>${c.artifacts.filter((a) => a.status === 'completed').length}/${c.artifacts.length}</td>
+  <td>${c.archived ? 'Yes' : 'No'}</td>
+</tr>`,
+    )
+    .join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpecForge Report</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 2rem; color: #333; }
+    h1 { color: #1a1a2e; }
+    .metrics { display: flex; gap: 1rem; margin: 1rem 0; }
+    .metric { background: #f0f0f5; padding: 1rem 1.5rem; border-radius: 8px; }
+    .metric .value { font-size: 2rem; font-weight: bold; color: #1a1a2e; }
+    .metric .label { color: #666; font-size: 0.85rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    th { background: #f5f5fa; font-weight: 600; }
+    .status { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; }
+    .status-active { background: #e3f2fd; color: #1565c0; }
+    .status-completed { background: #e8f5e9; color: #2e7d32; }
+    .status-archived { background: #f3e5f5; color: #7b1fa2; }
+  </style>
+</head>
+<body>
+  <h1>SpecForge Project Report</h1>
+  <p>Schema: <strong>${escapeHtml(report.schema)}</strong></p>
+  ${report.context ? `<p>Context: ${escapeHtml(report.context)}</p>` : ''}
+
+  <div class="metrics">
+    <div class="metric"><div class="value">${report.metrics.totalChanges}</div><div class="label">Total</div></div>
+    <div class="metric"><div class="value">${report.metrics.activeChanges}</div><div class="label">Active</div></div>
+    <div class="metric"><div class="value">${report.metrics.completedChanges}</div><div class="label">Completed</div></div>
+    <div class="metric"><div class="value">${report.metrics.archivedChanges}</div><div class="label">Archived</div></div>
+  </div>
+
+  <h2>Changes</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Status</th><th>Created</th><th>Progress</th><th>Archived</th></tr></thead>
+    <tbody>${changeRows}</tbody>
+  </table>
+</body>
+</html>`;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

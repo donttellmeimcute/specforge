@@ -1,0 +1,27 @@
+name: spec-driven
+version: 1
+description: "Spec-driven development workflow — proposal → specs → design → tasks"
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: "Change proposal describing what and why"
+    template: proposal.md
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: "Behavioral specifications (Given/When/Then)"
+    template: spec.md
+    requires: [proposal]
+
+  - id: design
+    generates: design.md
+    description: "Technical design document"
+    template: design.md
+    requires: [proposal]
+
+  - id: tasks
+    generates: tasks.md
+    description: "Implementation tasks with checkboxes"
+    template: tasks.md
+    requires: [specs, design]

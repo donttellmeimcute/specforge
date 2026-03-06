@@ -1,0 +1,27 @@
+name: tdd
+version: 1
+description: "Test-driven development workflow — tests → implementation → docs"
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: "Change proposal describing what and why"
+    template: proposal.md
+    requires: []
+
+  - id: tests
+    generates: "tests/**/*.md"
+    description: "Test specifications and acceptance criteria"
+    template: tests.md
+    requires: [proposal]
+
+  - id: implementation
+    generates: implementation.md
+    description: "Implementation plan based on test specs"
+    template: implementation.md
+    requires: [tests]
+
+  - id: docs
+    generates: docs.md
+    description: "Documentation for the implemented change"
+    template: docs.md
+    requires: [implementation]
