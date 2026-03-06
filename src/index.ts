@@ -17,7 +17,7 @@ export { PluginManager } from './core/plugins.js';
 export { createAIProvider } from './core/ai-provider.js';
 export { diffSpecs, mergeSpecs } from './core/diff-merge.js';
 export { detectConflicts } from './core/conflicts.js';
-export { generateReport, reportToJson, reportToHtml } from './core/export.js';
+export { generateReport, reportToJson, reportToHtml, reportToMarkdown } from './core/export.js';
 export { deepValidate, checkConsistency } from './core/smart-validate.js';
 export { createGitIntegration, conventionalCommit, changeBranchName } from './core/git-integration.js';
 export { watchChange } from './core/watch.js';

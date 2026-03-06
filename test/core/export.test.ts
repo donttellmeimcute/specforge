@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { initProject } from '../../src/core/init.js';
 import { createChange } from '../../src/core/change.js';
-import { generateReport, reportToJson, reportToHtml } from '../../src/core/export.js';
+import { generateReport, reportToJson, reportToHtml, reportToMarkdown } from '../../src/core/export.js';
 
 describe('export', () => {
   let tempDir: string;
@@ -50,5 +50,34 @@ describe('export', () => {
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('SpecForge');
     expect(html).toContain('test');
+  });
+
+  it('should export as Markdown with project skills', async () => {
+    const report = await generateReport(tempDir);
+    const md = reportToMarkdown(report);
+    expect(md).toContain('# SpecForge Project Skills');
+    expect(md).toContain('spec-driven');
+    expect(md).toContain('## Metrics');
+  });
+
+  it('should include changes in Markdown export', async () => {
+    await createChange(tempDir, 'my-feature');
+    const report = await generateReport(tempDir);
+    const md = reportToMarkdown(report);
+    expect(md).toContain('my-feature');
+    expect(md).toContain('## Changes');
+    expect(md).toContain('active');
+  });
+
+  it('should include context in Markdown export when provided', async () => {
+    const tempDirWithContext = await mkdtemp(join(tmpdir(), 'specforge-export-ctx-'));
+    try {
+      await initProject(tempDirWithContext, { context: 'React + TypeScript app' });
+      const report = await generateReport(tempDirWithContext);
+      const md = reportToMarkdown(report);
+      expect(md).toContain('React + TypeScript app');
+    } finally {
+      await rm(tempDirWithContext, { recursive: true, force: true });
+    }
   });
 });

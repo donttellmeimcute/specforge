@@ -2,12 +2,12 @@ import { Command } from 'commander';
 import { join } from 'node:path';
 import { findProjectRoot } from '../utils/path-utils.js';
 import { logger } from '../utils/logger.js';
-import { generateReport, reportToJson, reportToHtml } from '../core/export.js';
+import { generateReport, reportToJson, reportToHtml, reportToMarkdown } from '../core/export.js';
 import { writeTextFile } from '../utils/file-system.js';
 
 export const exportCommand = new Command('export')
   .description('Export project report')
-  .option('--format <format>', 'Output format: json, html', 'json')
+  .option('--format <format>', 'Output format: json, html, markdown', 'json')
   .option('-o, --output <path>', 'Output file path')
   .action(async (options: { format: string; output?: string }) => {
     try {
@@ -21,16 +21,21 @@ export const exportCommand = new Command('export')
       const report = await generateReport(projectRoot);
 
       let content: string;
-      let defaultExt: string;
+      let defaultFilename: string;
       switch (options.format) {
         case 'html':
           content = reportToHtml(report);
-          defaultExt = 'html';
+          defaultFilename = 'specforge-report.html';
+          break;
+        case 'markdown':
+        case 'md':
+          content = reportToMarkdown(report);
+          defaultFilename = 'CLAUDE.md';
           break;
         case 'json':
         default:
           content = reportToJson(report);
-          defaultExt = 'json';
+          defaultFilename = 'specforge-report.json';
           break;
       }
 
@@ -38,7 +43,7 @@ export const exportCommand = new Command('export')
         await writeTextFile(options.output, content);
         logger.success(`Report exported to ${options.output}`);
       } else {
-        const outputPath = join(projectRoot, `specforge-report.${defaultExt}`);
+        const outputPath = join(projectRoot, defaultFilename);
         await writeTextFile(outputPath, content);
         logger.success(`Report exported to ${outputPath}`);
       }
