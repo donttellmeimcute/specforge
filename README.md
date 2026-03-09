@@ -23,7 +23,7 @@ SpecForge es un framework CLI que estructura el desarrollo de software mediante 
 - [Referencia de Comandos CLI](#referencia-de-comandos-cli)
   - [Comandos Base](#comandos-base)
   - [Gestión de Schemas](#gestión-de-schemas)
-  - [Configuración](#configuración)
+  - [Configuración CLI](#configuración-cli)
   - [IA y Generación](#ia-y-generación)
   - [Especificaciones](#especificaciones)
   - [Monitoreo y Exportación](#monitoreo-y-exportación)
@@ -32,18 +32,25 @@ SpecForge es un framework CLI que estructura el desarrollo de software mediante 
   - [spec-driven (por defecto)](#spec-driven-por-defecto)
   - [tdd](#tdd)
   - [Schemas personalizados](#schemas-personalizados)
-- [Configuración](#referencia-de-configuración)
+- [Referencia de Configuración](#referencia-de-configuración)
   - [Configuración del proyecto](#configuración-del-proyecto)
   - [Configuración global](#configuración-global)
 - [Integración con IA](#integración-con-ia)
 - [Sistema de Plugins](#sistema-de-plugins)
-- [Integración con Git](#integración-con-git)
+- [Integración con Git y Plataformas Externas](#integración-con-git-y-plataformas-externas)
+  - [Funcionalidades Git](#funcionalidades-git)
+  - [Integración con Asana](#integración-con-asana)
+  - [Integración con GitHub (Pull Requests)](#integración-con-github-pull-requests)
+  - [Uso programático (Git)](#uso-programático-git)
 - [Modo Watch](#modo-watch)
+  - [Uso programático (Watch)](#uso-programático-watch)
 - [Validación Inteligente](#validación-inteligente)
 - [Diff, Merge y Conflictos](#diff-merge-y-conflictos)
 - [Exportación y Reportes](#exportación-y-reportes)
-- [Revisión Colaborativa](#flujo-de-revisión-colaborativa)
-- [API Programática](#api-programática)
+- [Flujo de Revisión Colaborativa](#flujo-de-revisión-colaborativa)
+  - [Estados de revisión](#estados-de-revisión)
+  - [Archivo `.review.yaml`](#archivo-reviewyaml)
+  - [Uso programático (Revisión)](#uso-programático-revisión)
 - [Arquitectura](#arquitectura)
 - [Desarrollo](#desarrollo)
 
@@ -388,7 +395,7 @@ Muestra qué schema está usando el proyecto actualmente.
 
 ---
 
-### Configuración
+### Configuración CLI
 
 #### `specforge config show`
 
@@ -943,7 +950,7 @@ specforge archive add-sso --pr
 - Lee los tags del cambio para detectar un ID de Asana (si existe)
 - Ejecuta `gh pr create` con un título y cuerpo preformateado (ej: `feat: add-sso (Asana #120123456789)`)
 
-### Uso programático
+### Uso programático (Git)
 
 ```typescript
 import { createGitIntegration, conventionalCommit, changeBranchName } from 'specforge';
@@ -986,7 +993,7 @@ specforge watch add-authentication
 ✔ [watch] All artifacts completed!
 ```
 
-### Uso programático
+### Uso programático (Watch)
 
 ```typescript
 import { watchChange } from 'specforge';
@@ -1165,7 +1172,7 @@ comments:
 requestedAt: "2026-03-06T13:00:00.000Z"
 ```
 
-### Uso programático
+### Uso programático (Revisión)
 
 ```typescript
 import {
