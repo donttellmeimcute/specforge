@@ -10,7 +10,6 @@ import { detectArtifactStates } from '../core/artifact-graph/state.js';
 import { loadChangeMetadata, updateChangeMetadata } from '../core/change.js';
 import { CHANGES_DIR, ARCHIVE_DIR } from '../utils/constants.js';
 import { pathExists, ensureDir } from '../utils/file-system.js';
-import { createPullRequestWithGhCli } from '../core/integrations/github.js';
 import { execSync } from 'node:child_process';
 
 export const archiveCommand = new Command('archive')
@@ -97,7 +96,7 @@ export const archiveCommand = new Command('archive')
           const title = `feat: ${changeName} (Asana #${asanaId})`;
           const body = `Resolves Asana ticket #${asanaId}. Specs archived via SpecForge.`;
 
-          createPullRequestWithGhCli(title, body);
+          execSync(`gh pr create --title "${title}" --body "${body}"`, { stdio: 'inherit' });
           logger.success('Pull Request created successfully via gh cli.');
         } catch (error) {
           logger.error(
