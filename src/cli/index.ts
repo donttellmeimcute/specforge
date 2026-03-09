@@ -40,7 +40,9 @@ program.hook('postAction', async () => {
 });
 
 // Group commands for better scaling
-const changeGroup = new Command('change').description('Manage changes (diff, merge, watch, status, archive)');
+const changeGroup = new Command('change-group')
+  .alias('cg')
+  .description('Manage changes (diff, merge, watch, status, archive)');
 changeGroup.addCommand(newChangeCommand); // new is technically "new change" but left as global for UX, but let's link it
 changeGroup.addCommand(statusCommand);
 changeGroup.addCommand(archiveCommand);
