@@ -134,7 +134,7 @@ export const validateCommand = new Command('validate')
 
             // Deep validation
             if (options.deep) {
-              const deepResult = await deepValidate(graph, changeDir);
+              const deepResult = await deepValidate(projectRoot, name);
               // Attach deep result so it is accessible for JSON output
               deepResults.set(name, deepResult);
 

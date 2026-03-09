@@ -6,7 +6,8 @@ import { watchChangeCli } from '../core/watch.js';
 export const watchCommand = new Command('watch')
   .description('Watch a change for file updates and auto-refresh artifact status')
   .argument('<change>', 'Name of the change to watch')
-  .action(async (changeName: string) => {
+  .option('--auto-fix', 'Use AI to continuously validate and auto-fix code against specs')
+  .action(async (changeName: string, options: { autoFix?: boolean }) => {
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
@@ -16,7 +17,10 @@ export const watchCommand = new Command('watch')
       }
 
       logger.info(`Watching change "${changeName}"... (press Ctrl+C to stop)`);
-      const controller = await watchChangeCli(projectRoot, changeName);
+      if (options.autoFix) {
+        logger.warn('Auto-fix is enabled. AI will analyze and potentially modify files automatically.');
+      }
+      const controller = await watchChangeCli(projectRoot, changeName, { autoFix: options.autoFix });
 
       // Handle clean shutdown
       process.on('SIGINT', () => {

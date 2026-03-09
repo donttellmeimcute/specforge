@@ -49,7 +49,8 @@ export const diffCommand = new Command('diff')
 export const mergeCommand = new Command('merge')
   .description('Merge change specs into main specs')
   .argument('<change>', 'Name of the change')
-  .action(async (changeName: string) => {
+  .option('--ai', 'Use AI to smartly resolve and merge conflicts semantically')
+  .action(async (changeName: string, options: { ai?: boolean }) => {
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
@@ -58,7 +59,11 @@ export const mergeCommand = new Command('merge')
         return;
       }
 
-      const result = await mergeSpecs(projectRoot, changeName);
+      if (options.ai) {
+        logger.info('Starting AI-powered Smart Merge...');
+      }
+
+      const result = await mergeSpecs(projectRoot, changeName, { useAi: options.ai });
 
       if (result.merged.length === 0) {
         logger.info('Nothing to merge.');

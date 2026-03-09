@@ -32,9 +32,35 @@ function isEffectivelyCompleted(status: ArtifactStatus): boolean {
  * - Ordering: Warn about out-of-order work (diverged / needs-sync)
  */
 export async function deepValidate(
-  graph: ArtifactGraph,
-  changeDir: string,
+  projectOrGraph: string | ArtifactGraph,
+  changeNameOrDir: string,
 ): Promise<ValidationResult> {
+  let graph: ArtifactGraph;
+  let changeDir: string;
+  
+  if (typeof projectOrGraph === 'string') {
+    const { resolveSpecforgePath } = await import('../utils/path-utils.js');
+    const { CHANGES_DIR } = await import('../utils/constants.js');
+    const { loadChangeMetadata } = await import('./change.js');
+    const { loadProjectConfig } = await import('./project-config.js');
+    const { resolveSchema } = await import('./artifact-graph/resolver.js');
+    const { detectArtifactStates } = await import('./artifact-graph/state.js');
+    
+    changeDir = resolveSpecforgePath(projectOrGraph, CHANGES_DIR, changeNameOrDir);
+    const metadata = await loadChangeMetadata(changeDir);
+    if (!metadata) throw new Error(`Change not found: ${changeNameOrDir}`);
+    
+    const config = await loadProjectConfig(projectOrGraph);
+    const schemaName = metadata.schema ?? config.schema;
+    const schema = await resolveSchema(schemaName, projectOrGraph);
+    
+    graph = new ArtifactGraph(schema);
+    await detectArtifactStates(graph, changeDir);
+  } else {
+    graph = projectOrGraph;
+    changeDir = changeNameOrDir;
+  }
+
   const issues: ValidationIssue[] = [];
   const nodes = graph.getAllNodes();
   const sorted = graph.topologicalSort();
