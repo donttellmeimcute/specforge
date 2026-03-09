@@ -259,6 +259,25 @@ specforge new change implement-login --asana 1234567890
 
 ---
 
+#### `specforge propose <change>`
+
+Escribe o actualiza la propuesta (`proposal.md`) de un cambio directamente desde la CLI.
+
+```bash
+specforge propose <change> [opciones]
+
+Opciones:
+  -m, --message <text>   El contenido de la propuesta
+```
+
+**Ejemplo:**
+```bash
+specforge propose add-payments -m "Quiero añadir Stripe para cobros en MXN"
+```
+*(Si no provees `-m`, se abrirá un prompt interactivo para que lo escribas).*
+
+---
+
 #### `specforge status <change>`
 
 Muestra el estado de los artefactos de un cambio con iconos y barra de progreso.

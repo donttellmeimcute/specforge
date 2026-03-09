@@ -16,6 +16,7 @@ import { exportCommand } from '../commands/export.js';
 import { contextCommand } from '../commands/context.js';
 import { watchCommand } from '../commands/watch.js';
 import { reviewCommand } from '../commands/review.js';
+import { proposeCommand } from '../commands/propose.js';
 import { reconcileCommand } from '../commands/reconcile.js';
 import { publishCommand } from '../commands/publish.js';
 import {
@@ -42,17 +43,8 @@ const program = new Command();
 program
   .name('specforge')
   .description(pkg.description)
-  .version(pkg.version, '-v, --version', 'Show the current version');
-
-// Setup omelette autocompletion
-const completion = omelette('specforge');
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-completion.on('complete', (env: any) => {
-  // A simple completion tree
-  const cmds = program.commands.map((c) => c.name());
-  env.reply(cmds);
-});
-completion.init();
+  .version(pkg.version, '-v, --version', 'Show the current version')
+  .option('--setup', 'Setup autocompletion for shell');
 
 // Global preAction hook for Telemetry and unified setup
 program.hook('preAction', async (_thisCommand, actionCommand) => {
@@ -76,6 +68,16 @@ for (const p of pluginManager.getPlugins()) {
   }
 }
 program.addCommand(syncGroup);
+
+// Setup omelette autocompletion
+const completion = omelette('specforge');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+completion.on('complete', (env: any) => {
+  // A simple completion tree
+  const cmds = program.commands.map((c) => c.name());
+  env.reply(cmds);
+});
+completion.init();
 
 // Group commands for better scaling
 const changeGroup = new Command('change-group')
@@ -108,11 +110,25 @@ program.addCommand(exportCommand);
 program.addCommand(watchCommand);
 program.addCommand(reviewCommand);
 program.addCommand(contextCommand);
+program.addCommand(proposeCommand);
 program.addCommand(reconcileCommand);
 program.addCommand(publishCommand);
 
 // Add global error handler for telemetry
 program.exitOverride();
+
+// Parse arguments without executing commands if setup is passed
+const args = process.argv.slice(2);
+if (args.includes('--setup')) {
+  try {
+    completion.setupShellInitFile();
+    console.log('Autocompletion setup successful. Please restart your terminal.');
+  } catch (err) {
+    console.error('Could not setup autocompletion automatically.');
+    console.error('If you are on Windows/PowerShell, Omelette auto-setup is not fully supported.');
+  }
+  process.exit(0);
+}
 
 try {
   program.parse(process.argv);

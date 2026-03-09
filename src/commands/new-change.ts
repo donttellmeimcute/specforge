@@ -5,7 +5,9 @@ import { logger } from '../utils/logger.js';
 import { text, confirm } from '@clack/prompts';
 
 export const newChangeCommand = new Command('new')
-  .description('Create a new change or artifact')
+  .description('Create a new change or artifact');
+
+newChangeCommand
   .command('change [name]')
   .description('Create a new change (interactive if name omitted)')
   .option('-s, --schema <name>', 'Override workflow schema for this change')
