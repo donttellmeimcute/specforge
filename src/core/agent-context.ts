@@ -11,7 +11,7 @@ import { readdir } from 'node:fs/promises';
 export interface AgentContextOptions {
   /** Name of a specific change to include status for */
   changeName?: string;
-  /** Output format(s) to generate */
+  /** Output format(s) to generate. Defaults to both `['cursorrules', 'clinerules']` when not provided. */
   formats?: Array<'cursorrules' | 'clinerules'>;
 }
 

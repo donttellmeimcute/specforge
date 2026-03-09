@@ -1,6 +1,7 @@
 import { ArtifactGraph } from './artifact-graph/graph.js';
 import { readTextFile } from '../utils/file-system.js';
 import { join } from 'node:path';
+import { ArtifactStatus } from './artifact-graph/types.js';
 
 export interface ValidationResult {
   score: number; // 0-100
@@ -14,6 +15,14 @@ export interface ValidationIssue {
   artifact: string;
   message: string;
   suggestion?: string;
+}
+
+/**
+ * Returns true for statuses that are considered "effectively complete" for the
+ * purpose of dependency satisfaction and content checks.
+ */
+function isEffectivelyCompleted(status: ArtifactStatus): boolean {
+  return status === 'completed' || status === 'needs-sync';
 }
 
 /**
@@ -37,7 +46,7 @@ export async function deepValidate(
     if (!node) continue;
 
     // Check completeness of completed (and needs-sync) artifacts
-    if (node.status === 'completed' || node.status === 'needs-sync') {
+    if (isEffectivelyCompleted(node.status)) {
       completedCount++;
 
       for (const file of node.matchedFiles) {
@@ -56,7 +65,7 @@ export async function deepValidate(
       const deps = graph.getDependencies(id);
       for (const depId of deps) {
         const depNode = graph.getNode(depId);
-        if (depNode && depNode.status !== 'completed' && depNode.status !== 'needs-sync') {
+        if (depNode && !isEffectivelyCompleted(depNode.status)) {
           issues.push({
             level: 'error',
             artifact: id,
@@ -73,7 +82,7 @@ export async function deepValidate(
         .getDependencies(id)
         .filter((depId) => {
           const s = graph.getNode(depId)?.status;
-          return s !== 'completed' && s !== 'needs-sync' && s !== 'diverged';
+          return s !== undefined && !isEffectivelyCompleted(s) && s !== 'diverged';
         });
       issues.push({
         level: 'warning',
@@ -137,7 +146,7 @@ export async function checkConsistency(
 
   for (const id of sorted) {
     const node = graph.getNode(id);
-    if (!node || node.status !== 'completed') continue;
+    if (!node || !isEffectivelyCompleted(node.status)) continue;
 
     const deps = graph.getDependencies(id);
     if (deps.length === 0) continue;
@@ -269,7 +278,7 @@ export function generateSelfHealingInstructions(
           .getDependencies(node.definition.id)
           .filter((depId) => {
             const s = graph.getNode(depId)?.status;
-            return s !== 'completed' && s !== 'needs-sync' && s !== 'diverged';
+            return s !== undefined && !isEffectivelyCompleted(s) && s !== 'diverged';
           });
         instructions.push(
           `[${node.definition.id}] Diverged — create/complete: ${missingDeps.join(', ')}`,
