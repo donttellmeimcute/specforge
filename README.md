@@ -81,6 +81,7 @@ proposal ──→ specs ──→ tasks
 | **Watch Mode** | Monitoreo en tiempo real con refresco automático de estado |
 | **Sistema de Plugins** | Hooks en el ciclo de vida (init, create, archive, validate) |
 | **Git Integration** | Branches automáticos, conventional commits, detección de estado |
+| **Integraciones Externas**| Soporte para Asana (tracking) y GitHub CLI (Pull Requests) |
 | **Revisión Colaborativa** | Flujo draft → review → approved con comentarios |
 | **Exportación** | Reportes en JSON y HTML con dashboard visual |
 
@@ -109,6 +110,12 @@ npm link
 ### Dependencias opcionales
 
 ```bash
+# Para integración con Asana
+npm install asana dotenv
+
+# Para integración con GitHub
+npm install @octokit/rest
+
 # Para generación con IA (instalar según el provider que uses)
 npm install openai              # OpenAI (GPT-4, etc.)
 npm install @anthropic-ai/sdk   # Anthropic (Claude API)
@@ -223,11 +230,13 @@ Opciones:
   -s, --schema <name>    Override del schema para este cambio
   -t, --tags <tags...>   Tags de categorización
   -a, --author <name>    Identificador del autor
+  --asana <taskId>       ID de la tarea de Asana para extraer info y enlazar
 ```
 
 **Ejemplo:**
 ```bash
 specforge new change add-payments --schema tdd --tags payments billing --author alice
+specforge new change implement-login --asana 1234567890
 ```
 
 ---
@@ -318,6 +327,12 @@ specforge archive <change> [opciones]
 
 Opciones:
   --force                Archivar aunque no todos los artefactos estén completos
+  --pr                   Crear un Pull Request automáticamente (usa GitHub CLI `gh`)
+```
+
+**Ejemplo:**
+```bash
+specforge archive add-authentication --pr
 ```
 
 ---
@@ -882,16 +897,51 @@ interface HookContext {
 
 ---
 
-## Integración con Git
+## Integración con Git y Plataformas Externas
 
-> Requiere instalar `simple-git`: `npm install simple-git`
+> Requiere instalar dependencias adicionales dependiendo del uso (`simple-git`, `asana`, `@octokit/rest`).
 
-### Funcionalidades
+### Funcionalidades Git
 
 - **Detección automática** de repositorio Git
-- **Branches por cambio**: `specforge/<change-name>`
+- **Branches por cambio**: `specforge/<change-name>` o `feat/asana-[ID]-[change-name]`
 - **Conventional commits**: `feat(change): descripción`
 - **Estado de archivos**: nuevo, modificado, eliminado, renombrado
+
+### Integración con Asana
+
+SpecForge puede auto-generar la propuesta inicial y el contexto técnico leyendo directamente de un ticket de Asana.
+
+1. Configura el token de acceso en tus variables de entorno (`.env` o global):
+```bash
+export ASANA_ACCESS_TOKEN=1/12345678...
+```
+2. Ejecuta la creación del cambio apuntando al ID:
+```bash
+specforge new change add-sso --asana 120123456789
+```
+
+**Lo que hace automáticamente:**
+- Crea la rama en Git (`feat/asana-120123456789-add-sso`)
+- Lee el título, descripción y el usuario asignado
+- Genera el `proposal.md` con esta información
+- Agrega el tag `asana-120123456789` a los metadatos
+
+### Integración con GitHub (Pull Requests)
+
+Una vez completadas todas las tareas y especificaciones, puedes automatizar la subida a GitHub.
+
+> Requiere tener instalada la [CLI de GitHub (`gh`)](https://cli.github.com/) e iniciada sesión.
+
+```bash
+specforge archive add-sso --pr
+```
+
+**Lo que hace automáticamente:**
+- Verifica y archiva el cambio localmente
+- Hace `git push -u origin HEAD`
+- Lee los tags del cambio para detectar un ID de Asana (si existe)
+- Ejecuta `gh pr create` con un título y cuerpo preformateado (ej: `feat: add-sso (Asana #120123456789)`)
 
 ### Uso programático
 
