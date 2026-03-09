@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { findProjectRoot } from '../utils/path-utils.js';
 import { logger } from '../utils/logger.js';
 import { diffSpecs, mergeSpecs } from '../core/diff-merge.js';
+import ora from 'ora';
 
 export const diffCommand = new Command('diff')
   .description('Show diff between change specs and main specs')
@@ -51,6 +52,7 @@ export const mergeCommand = new Command('merge')
   .argument('<change>', 'Name of the change')
   .option('--ai', 'Use AI to smartly resolve and merge conflicts semantically')
   .action(async (changeName: string, options: { ai?: boolean }) => {
+    let spinner;
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
@@ -60,10 +62,14 @@ export const mergeCommand = new Command('merge')
       }
 
       if (options.ai) {
-        logger.info('Starting AI-powered Smart Merge...');
+        spinner = ora('Starting AI-powered Smart Merge...').start();
       }
 
       const result = await mergeSpecs(projectRoot, changeName, { useAi: options.ai });
+
+      if (spinner) {
+        spinner.succeed('Smart Merge completed');
+      }
 
       if (result.merged.length === 0) {
         logger.info('Nothing to merge.');
@@ -80,6 +86,7 @@ export const mergeCommand = new Command('merge')
         }
       }
     } catch (error) {
+      if (spinner) spinner.fail('Smart Merge failed');
       logger.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     }

@@ -12,6 +12,7 @@ import { createAIProvider } from '../core/ai-provider.js';
 import { writeTextFile } from '../utils/file-system.js';
 import { CHANGES_DIR } from '../utils/constants.js';
 import { join } from 'node:path';
+import ora from 'ora';
 
 export const generateCommand = new Command('generate')
   .description('Generate an artifact using AI')
@@ -32,6 +33,7 @@ export const generateCommand = new Command('generate')
         output?: string;
       },
     ) => {
+      let spinner;
       try {
         const projectRoot = await findProjectRoot();
         if (!projectRoot) {
@@ -105,7 +107,7 @@ export const generateCommand = new Command('generate')
           baseUrl: globalConfig.ai?.baseUrl,
         });
 
-        logger.info(`Generating "${targetId}" with ${provider.name}...`);
+        spinner = ora(`Generating "${targetId}" with ${provider.name}...`).start();
 
         const content = await provider.generate(prompt);
 
@@ -115,8 +117,11 @@ export const generateCommand = new Command('generate')
           options.output ?? join(changeDir, node.definition.generates);
 
         await writeTextFile(outputPath, content);
-        logger.success(`Generated: ${outputPath}`);
+        spinner.succeed(`Generated: ${outputPath}`);
       } catch (error) {
+        if (spinner) {
+           spinner.fail(`Generation failed`);
+        }
         logger.error(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }

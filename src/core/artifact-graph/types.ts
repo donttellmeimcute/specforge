@@ -178,6 +178,12 @@ export const GlobalConfigSchema = z.object({
       conventionalCommits: z.boolean().default(true),
     })
     .optional(),
+    
+  /** Opt-in or opt-out of anonymous usage telemetry */
+  telemetry: z.boolean().optional(),
+  
+  /** Unique anonymous ID for telemetry */
+  telemetryId: z.string().optional(),
 });
 
 export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;

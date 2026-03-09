@@ -134,7 +134,10 @@ export const validateCommand = new Command('validate')
 
             // Deep validation
             if (options.deep) {
+              const ora = (await import('ora')).default;
+              const spinner = ora(`Running deep validation for ${name}...`).start();
               const deepResult = await deepValidate(projectRoot, name);
+              spinner.stop();
               // Attach deep result so it is accessible for JSON output
               deepResults.set(name, deepResult);
 
