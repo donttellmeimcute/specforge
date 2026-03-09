@@ -5,6 +5,8 @@ import { join } from 'node:path';
 export interface ValidationResult {
   score: number; // 0-100
   issues: ValidationIssue[];
+  /** Actionable instructions for an AI agent to self-heal the project (present when score < 90). */
+  selfHealingInstructions?: string[];
 }
 
 export interface ValidationIssue {
@@ -18,7 +20,7 @@ export interface ValidationIssue {
  * Perform deep validation on a change's artifacts:
  * - Completeness: Check that completed artifacts have non-trivial content
  * - Consistency: Cross-reference dependencies for keyword alignment
- * - Ordering: Warn about out-of-order work
+ * - Ordering: Warn about out-of-order work (diverged / needs-sync)
  */
 export async function deepValidate(
   graph: ArtifactGraph,
@@ -34,8 +36,8 @@ export async function deepValidate(
     const node = graph.getNode(id);
     if (!node) continue;
 
-    // Check completeness of completed artifacts
-    if (node.status === 'completed') {
+    // Check completeness of completed (and needs-sync) artifacts
+    if (node.status === 'completed' || node.status === 'needs-sync') {
       completedCount++;
 
       for (const file of node.matchedFiles) {
@@ -54,7 +56,7 @@ export async function deepValidate(
       const deps = graph.getDependencies(id);
       for (const depId of deps) {
         const depNode = graph.getNode(depId);
-        if (depNode && depNode.status !== 'completed') {
+        if (depNode && depNode.status !== 'completed' && depNode.status !== 'needs-sync') {
           issues.push({
             level: 'error',
             artifact: id,
@@ -63,6 +65,34 @@ export async function deepValidate(
           });
         }
       }
+    }
+
+    // Warn about diverged artifacts (out-of-order editing)
+    if (node.status === 'diverged') {
+      const incompleteDeps = graph
+        .getDependencies(id)
+        .filter((depId) => {
+          const s = graph.getNode(depId)?.status;
+          return s !== 'completed' && s !== 'needs-sync' && s !== 'diverged';
+        });
+      issues.push({
+        level: 'warning',
+        artifact: id,
+        message: `Edited out of order — dependency artifact(s) not yet completed: ${incompleteDeps.join(', ')}`,
+        suggestion: `Complete ${incompleteDeps.map((d) => `"${d}"`).join(', ')} to restore consistency.`,
+      });
+      // Count diverged files toward partial score
+      completedCount += 0.5;
+    }
+
+    // Warn about needs-sync artifacts (dependency was updated after this artifact)
+    if (node.status === 'needs-sync') {
+      issues.push({
+        level: 'warning',
+        artifact: id,
+        message: `Content may be out of date — one or more dependency artifacts were modified more recently`,
+        suggestion: `Review and update "${id}" to reflect changes in its dependencies.`,
+      });
     }
 
     // Warn about ready artifacts that have files but aren't fully matching
@@ -85,7 +115,14 @@ export async function deepValidate(
   const warningPenalty = issues.filter((i) => i.level === 'warning').length * 5;
   const score = Math.max(0, Math.min(100, Math.round(baseScore - errorPenalty - warningPenalty)));
 
-  return { score, issues };
+  const result: ValidationResult = { score, issues };
+
+  // Generate self-healing instructions when score is below the 90-point threshold
+  if (score < 90) {
+    result.selfHealingInstructions = generateSelfHealingInstructions(score, issues, graph);
+  }
+
+  return result;
 }
 
 /**
@@ -168,4 +205,82 @@ function extractKeywords(content: string): string[] {
 
   // Deduplicate and return
   return [...new Set(words)];
+}
+
+/**
+ * Generate actionable self-healing instructions for an AI agent based on validation results.
+ * These are optimised for consumption by an LLM: plain language, no ANSI decoration.
+ */
+export function generateSelfHealingInstructions(
+  score: number,
+  issues: ValidationIssue[],
+  graph: ArtifactGraph,
+): string[] {
+  const instructions: string[] = [];
+
+  instructions.push(
+    `Current score is ${score}/100 (threshold: 90). Apply the following fixes and re-run ` +
+      '`specforge validate --deep --json` until the score reaches 90 or above.',
+  );
+
+  // 1. Errors first (highest impact)
+  const errors = issues.filter((i) => i.level === 'error');
+  if (errors.length > 0) {
+    instructions.push('--- Errors to fix (each costs 15 points) ---');
+    for (const err of errors) {
+      const base = `[${err.artifact}] ${err.message}`;
+      instructions.push(err.suggestion ? `${base} → ${err.suggestion}` : base);
+    }
+  }
+
+  // 2. Warnings (medium impact)
+  const warnings = issues.filter((i) => i.level === 'warning');
+  if (warnings.length > 0) {
+    instructions.push('--- Warnings to address (each costs 5 points) ---');
+    for (const warn of warnings) {
+      const base = `[${warn.artifact}] ${warn.message}`;
+      instructions.push(warn.suggestion ? `${base} → ${warn.suggestion}` : base);
+    }
+  }
+
+  // 3. Incomplete artifacts (score boost)
+  const incomplete = graph
+    .getAllNodes()
+    .filter((n) => n.status === 'pending' || n.status === 'ready');
+  if (incomplete.length > 0) {
+    instructions.push('--- Artifacts not yet started (completing them raises the score) ---');
+    for (const node of incomplete) {
+      instructions.push(
+        `[${node.definition.id}] Status: ${node.status}. ` +
+          `Run \`specforge instructions <change> ${node.definition.id}\` to get the AI prompt.`,
+      );
+    }
+  }
+
+  // 4. Diverged / needs-sync artifacts
+  const driftedNodes = graph
+    .getAllNodes()
+    .filter((n) => n.status === 'diverged' || n.status === 'needs-sync');
+  if (driftedNodes.length > 0) {
+    instructions.push('--- Consistency drift to resolve ---');
+    for (const node of driftedNodes) {
+      if (node.status === 'diverged') {
+        const missingDeps = graph
+          .getDependencies(node.definition.id)
+          .filter((depId) => {
+            const s = graph.getNode(depId)?.status;
+            return s !== 'completed' && s !== 'needs-sync' && s !== 'diverged';
+          });
+        instructions.push(
+          `[${node.definition.id}] Diverged — create/complete: ${missingDeps.join(', ')}`,
+        );
+      } else {
+        instructions.push(
+          `[${node.definition.id}] Needs sync — review and update to reflect changes in dependencies.`,
+        );
+      }
+    }
+  }
+
+  return instructions;
 }

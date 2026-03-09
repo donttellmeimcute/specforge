@@ -127,8 +127,9 @@ export class ArtifactGraph {
   }
 
   /**
-   * Get artifacts that are "ready" — all dependencies are completed
-   * but the artifact itself is not yet completed.
+   * Get artifacts that are actionable — either "ready" (dependencies completed,
+   * no files yet) or "diverged" (files exist but dependencies are incomplete).
+   * "needs-sync" artifacts are also returned so the agent knows they require attention.
    */
   getNextArtifacts(): ArtifactNode[] {
     const result: ArtifactNode[] = [];
@@ -136,10 +137,16 @@ export class ArtifactGraph {
     for (const [id, node] of this.nodes) {
       if (node.status === 'completed') continue;
 
+      // diverged and needs-sync artifacts are always actionable
+      if (node.status === 'diverged' || node.status === 'needs-sync') {
+        result.push(node);
+        continue;
+      }
+
       const deps = this.edges.get(id) ?? new Set();
       const allDepsCompleted = [...deps].every((depId) => {
         const depNode = this.nodes.get(depId);
-        return depNode?.status === 'completed';
+        return depNode?.status === 'completed' || depNode?.status === 'needs-sync';
       });
 
       if (allDepsCompleted) {
@@ -166,6 +173,8 @@ export class ArtifactGraph {
       ready: [],
       'in-progress': [],
       completed: [],
+      diverged: [],
+      'needs-sync': [],
     };
 
     for (const [id, node] of this.nodes) {
