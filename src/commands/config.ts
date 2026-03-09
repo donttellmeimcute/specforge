@@ -4,8 +4,9 @@ import { findProjectRoot } from '../utils/path-utils.js';
 import { logger } from '../utils/logger.js';
 import { loadProjectConfig, saveProjectConfig } from '../core/project-config.js';
 
-export const configCommand = new Command('config')
-  .description('View or update project configuration');
+export const configCommand = new Command('config').description(
+  'View or update project configuration',
+);
 
 configCommand
   .command('show')

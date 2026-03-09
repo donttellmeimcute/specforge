@@ -3,7 +3,11 @@ import { mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initProject } from '../../src/core/init.js';
-import { createChange, loadChangeMetadata, updateChangeMetadata } from '../../src/core/change.js';
+import {
+  createChange,
+  loadChangeMetadata,
+  updateChangeMetadata,
+} from '../../src/core/change.js';
 import { pathExists, readTextFile } from '../../src/utils/file-system.js';
 import { SPECFORGE_DIR, CHANGES_DIR, METADATA_FILE } from '../../src/utils/constants.js';
 
@@ -34,12 +38,7 @@ describe('change', () => {
 
     it('should write valid metadata', async () => {
       await createChange(tempDir, 'add-auth');
-      const changeDir = join(
-        tempDir,
-        SPECFORGE_DIR,
-        CHANGES_DIR,
-        'add-auth',
-      );
+      const changeDir = join(tempDir, SPECFORGE_DIR, CHANGES_DIR, 'add-auth');
 
       const metadata = await loadChangeMetadata(changeDir);
       expect(metadata).not.toBeNull();
@@ -55,9 +54,7 @@ describe('change', () => {
 
     it('should reject duplicate names', async () => {
       await createChange(tempDir, 'add-auth');
-      await expect(createChange(tempDir, 'add-auth')).rejects.toThrow(
-        'already exists',
-      );
+      await expect(createChange(tempDir, 'add-auth')).rejects.toThrow('already exists');
     });
 
     it('should accept tags and author', async () => {
@@ -66,12 +63,7 @@ describe('change', () => {
         author: 'dev@test.com',
       });
 
-      const changeDir = join(
-        tempDir,
-        SPECFORGE_DIR,
-        CHANGES_DIR,
-        'add-auth',
-      );
+      const changeDir = join(tempDir, SPECFORGE_DIR, CHANGES_DIR, 'add-auth');
       const metadata = await loadChangeMetadata(changeDir);
       expect(metadata!.tags).toEqual(['security', 'backend']);
       expect(metadata!.author).toBe('dev@test.com');

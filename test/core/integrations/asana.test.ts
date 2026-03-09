@@ -30,7 +30,7 @@ describe('Asana Integration', () => {
   it('should create an asana client with the provided token', () => {
     const token = 'test-token-123';
     const client = asanaIntegration.getAsanaClient(token);
-    
+
     expect(client).toBeDefined();
     expect(asana.Client.create).toHaveBeenCalled();
   });
@@ -39,7 +39,7 @@ describe('Asana Integration', () => {
     const token = 'test-token-123';
     const client1 = asanaIntegration.getAsanaClient(token);
     const client2 = asanaIntegration.getAsanaClient(token);
-    
+
     expect(client1).toBe(client2);
   });
 
@@ -54,11 +54,11 @@ describe('Asana Integration', () => {
         name: 'John Doe',
       },
     };
-    
+
     mockFindById.mockResolvedValueOnce(mockTaskData);
-    
+
     const task = await asanaIntegration.fetchAsanaTask('123456', 'fake-token');
-    
+
     expect(mockFindById).toHaveBeenCalledWith('123456');
     expect(task).toEqual({
       id: '123456',
@@ -80,11 +80,11 @@ describe('Asana Integration', () => {
       permalink_url: 'https://app.asana.com/0/123/123456',
       assignee: null,
     };
-    
+
     mockFindById.mockResolvedValueOnce(mockTaskData);
-    
+
     const task = await asanaIntegration.fetchAsanaTask('123456', 'fake-token');
-    
+
     expect(task.assignee).toBeNull();
   });
 });

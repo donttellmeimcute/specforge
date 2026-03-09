@@ -4,7 +4,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { initProject } from '../../src/core/init.js';
 import { createChange } from '../../src/core/change.js';
-import { deepValidate, generateSelfHealingInstructions } from '../../src/core/smart-validate.js';
+import {
+  deepValidate,
+  generateSelfHealingInstructions,
+} from '../../src/core/smart-validate.js';
 import { resolveSchema } from '../../src/core/artifact-graph/resolver.js';
 import { ArtifactGraph } from '../../src/core/artifact-graph/graph.js';
 import { detectArtifactStates } from '../../src/core/artifact-graph/state.js';
@@ -133,7 +136,12 @@ describe('generateSelfHealingInstructions', () => {
       version: 1,
       description: 'Simple test',
       artifacts: [
-        { id: 'proposal', generates: 'proposal.md', description: 'Proposal', requires: [] },
+        {
+          id: 'proposal',
+          generates: 'proposal.md',
+          description: 'Proposal',
+          requires: [],
+        },
       ],
     };
     const graph = new ArtifactGraph(simpleSchema);
@@ -150,7 +158,12 @@ describe('generateSelfHealingInstructions', () => {
       version: 1,
       description: 'Simple test',
       artifacts: [
-        { id: 'proposal', generates: 'proposal.md', description: 'Proposal', requires: [] },
+        {
+          id: 'proposal',
+          generates: 'proposal.md',
+          description: 'Proposal',
+          requires: [],
+        },
       ],
     };
     const graph = new ArtifactGraph(simpleSchema);

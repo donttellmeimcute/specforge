@@ -75,7 +75,7 @@ export interface MergeOptions {
 export async function mergeSpecs(
   projectRoot: string,
   changeName: string,
-  options: MergeOptions = {}
+  options: MergeOptions = {},
 ): Promise<{ merged: string[]; conflicts: string[] }> {
   const { writeTextFile, ensureDir } = await import('../utils/file-system.js');
   const mainSpecsDir = resolveSpecforgePath(projectRoot, SPECS_DIR);
@@ -83,20 +83,22 @@ export async function mergeSpecs(
 
   const merged: string[] = [];
   const conflicts: string[] = [];
-  
+
   let aiProvider = null;
   if (options.useAi) {
     const globalConfig = await loadGlobalConfig();
     const aiConfig = globalConfig.ai;
     if (!aiConfig) {
-      throw new Error('AI configuration not found in global config. Run `specforge config set ai.provider ...` first.');
+      throw new Error(
+        'AI configuration not found in global config. Run `specforge config set ai.provider ...` first.',
+      );
     }
     // ensure type match
     aiProvider = await createAIProvider({
       provider: aiConfig.provider || 'openai',
       model: aiConfig.model,
       apiKey: aiConfig.apiKey,
-      baseUrl: aiConfig.baseUrl
+      baseUrl: aiConfig.baseUrl,
     });
   }
 
@@ -105,9 +107,9 @@ export async function mergeSpecs(
 
     const targetPath = join(mainSpecsDir, diff.file);
     await ensureDir(join(targetPath, '..'));
-    
+
     let contentToWrite = diff.changeContent;
-    
+
     // Semantic Smart Merge
     if (diff.type === 'modified' && options.useAi && aiProvider && diff.mainContent) {
       logger.info(`Semantically merging ${diff.file}...`);
@@ -127,7 +129,9 @@ ${diff.changeContent}
       try {
         contentToWrite = await aiProvider.generate(prompt);
       } catch (e) {
-        logger.warn(`AI merge failed for ${diff.file}, falling back to overwrite: ${e instanceof Error ? e.message : String(e)}`);
+        logger.warn(
+          `AI merge failed for ${diff.file}, falling back to overwrite: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
     }
 

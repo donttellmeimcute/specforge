@@ -21,10 +21,7 @@ export async function readTextFile(filePath: string): Promise<string | null> {
 }
 
 /** Write a UTF-8 text file, creating parent directories as needed */
-export async function writeTextFile(
-  filePath: string,
-  content: string,
-): Promise<void> {
+export async function writeTextFile(filePath: string, content: string): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, content, 'utf-8');
 }

@@ -13,9 +13,24 @@ const schema: WorkflowSchema = {
   description: 'Test schema',
   artifacts: [
     { id: 'proposal', generates: 'proposal.md', description: 'Proposal', requires: [] },
-    { id: 'specs', generates: 'specs/**/*.md', description: 'Specs', requires: ['proposal'] },
-    { id: 'design', generates: 'design.md', description: 'Design', requires: ['proposal'] },
-    { id: 'tasks', generates: 'tasks.md', description: 'Tasks', requires: ['specs', 'design'] },
+    {
+      id: 'specs',
+      generates: 'specs/**/*.md',
+      description: 'Specs',
+      requires: ['proposal'],
+    },
+    {
+      id: 'design',
+      generates: 'design.md',
+      description: 'Design',
+      requires: ['proposal'],
+    },
+    {
+      id: 'tasks',
+      generates: 'tasks.md',
+      description: 'Tasks',
+      requires: ['specs', 'design'],
+    },
   ],
 };
 
@@ -119,5 +134,4 @@ describe('detectArtifactStates', () => {
     expect(graph.getNode('design')!.status).toBe('needs-sync');
     expect(graph.getNode('proposal')!.status).toBe('completed');
   });
-
 });

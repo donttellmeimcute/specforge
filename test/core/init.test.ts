@@ -4,7 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initProject } from '../../src/core/init.js';
 import { pathExists, readTextFile } from '../../src/utils/file-system.js';
-import { SPECFORGE_DIR, CONFIG_FILE, SPECS_DIR, CHANGES_DIR, SCHEMAS_DIR, ARCHIVE_DIR } from '../../src/utils/constants.js';
+import {
+  SPECFORGE_DIR,
+  CONFIG_FILE,
+  SPECS_DIR,
+  CHANGES_DIR,
+  SCHEMAS_DIR,
+  ARCHIVE_DIR,
+} from '../../src/utils/constants.js';
 
 describe('initProject', () => {
   let tempDir: string;
@@ -23,7 +30,9 @@ describe('initProject', () => {
     expect(await pathExists(join(tempDir, SPECFORGE_DIR))).toBe(true);
     expect(await pathExists(join(tempDir, SPECFORGE_DIR, SPECS_DIR))).toBe(true);
     expect(await pathExists(join(tempDir, SPECFORGE_DIR, CHANGES_DIR))).toBe(true);
-    expect(await pathExists(join(tempDir, SPECFORGE_DIR, CHANGES_DIR, ARCHIVE_DIR))).toBe(true);
+    expect(await pathExists(join(tempDir, SPECFORGE_DIR, CHANGES_DIR, ARCHIVE_DIR))).toBe(
+      true,
+    );
     expect(await pathExists(join(tempDir, SPECFORGE_DIR, SCHEMAS_DIR))).toBe(true);
   });
 
@@ -58,7 +67,11 @@ describe('initProject', () => {
   it('should create .gitkeep files', async () => {
     await initProject(tempDir);
 
-    expect(await pathExists(join(tempDir, SPECFORGE_DIR, SPECS_DIR, '.gitkeep'))).toBe(true);
-    expect(await pathExists(join(tempDir, SPECFORGE_DIR, SCHEMAS_DIR, '.gitkeep'))).toBe(true);
+    expect(await pathExists(join(tempDir, SPECFORGE_DIR, SPECS_DIR, '.gitkeep'))).toBe(
+      true,
+    );
+    expect(await pathExists(join(tempDir, SPECFORGE_DIR, SCHEMAS_DIR, '.gitkeep'))).toBe(
+      true,
+    );
   });
 });

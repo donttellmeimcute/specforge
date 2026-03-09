@@ -18,9 +18,13 @@ export const watchCommand = new Command('watch')
 
       logger.info(`Watching change "${changeName}"... (press Ctrl+C to stop)`);
       if (options.autoFix) {
-        logger.warn('Auto-fix is enabled. AI will analyze and potentially modify files automatically.');
+        logger.warn(
+          'Auto-fix is enabled. AI will analyze and potentially modify files automatically.',
+        );
       }
-      const controller = await watchChangeCli(projectRoot, changeName, { autoFix: options.autoFix });
+      const controller = await watchChangeCli(projectRoot, changeName, {
+        autoFix: options.autoFix,
+      });
 
       // Handle clean shutdown
       process.on('SIGINT', () => {

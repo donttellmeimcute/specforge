@@ -17,9 +17,7 @@ export const listCommand = new Command('list')
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
-        logger.error(
-          'Not inside a SpecForge project. Run `specforge init` first.',
-        );
+        logger.error('Not inside a SpecForge project. Run `specforge init` first.');
         process.exitCode = 1;
         return;
       }
@@ -33,9 +31,7 @@ export const listCommand = new Command('list')
         process.exitCode = 1;
       }
     } catch (error) {
-      logger.error(
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     }
   });
@@ -70,9 +66,7 @@ async function listChanges(
         });
         for (const ae of archiveEntries) {
           if (!ae.isDirectory()) continue;
-          const metadata = await loadChangeMetadata(
-            join(archiveDir, ae.name),
-          );
+          const metadata = await loadChangeMetadata(join(archiveDir, ae.name));
           changes.push({
             name: ae.name,
             status: metadata?.status ?? 'unknown',

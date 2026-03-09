@@ -10,24 +10,24 @@ const POSTHOG_API_KEY = 'phc_dummy_key_replace_me';
 
 export async function initTelemetry() {
   const globalConfig = await loadGlobalConfig();
-  
+
   // Opt-in / Opt-out logic
   if (globalConfig.telemetry === false) {
     return;
   }
-  
+
   // Generate a distinct anonymous ID for this machine if none exists
   if (!globalConfig.telemetryId) {
     globalConfig.telemetryId = crypto.randomUUID();
     const { saveGlobalConfig } = await import('../core/global-config.js');
     await saveGlobalConfig(globalConfig);
   }
-  
+
   distinctId = globalConfig.telemetryId;
 
   client = new PostHog(
     POSTHOG_API_KEY,
-    { host: 'https://eu.posthog.com', flushAt: 1, flushInterval: 0 } // sync flush for CLI
+    { host: 'https://eu.posthog.com', flushAt: 1, flushInterval: 0 }, // sync flush for CLI
   );
 }
 
@@ -41,8 +41,8 @@ export function trackCommand(command: string, properties: Record<string, any> = 
       command,
       ...properties,
       os: process.platform,
-      node_version: process.version
-    }
+      node_version: process.version,
+    },
   });
 }
 
@@ -55,8 +55,8 @@ export function trackError(command: string, error: Error) {
     properties: {
       command,
       error_message: error.message,
-      error_name: error.name
-    }
+      error_name: error.name,
+    },
   });
 }
 

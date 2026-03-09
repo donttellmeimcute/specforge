@@ -83,30 +83,24 @@ reviewCommand
   .requiredOption('-a, --author <name>', 'Comment author')
   .requiredOption('-m, --message <text>', 'Comment message')
   .option('--artifact <id>', 'Artifact the comment relates to', '*')
-  .action(
-    async (opts: { author: string; message: string; artifact: string }, cmd) => {
-      try {
-        const changeName = cmd.parent!.parent!.args[0]!;
-        const projectRoot = await findProjectRoot();
-        if (!projectRoot) {
-          logger.error('Not inside a SpecForge project.');
-          process.exitCode = 1;
-          return;
-        }
-
-        const changeDir = resolveSpecforgePath(
-          projectRoot,
-          CHANGES_DIR,
-          changeName,
-        );
-        await addComment(changeDir, opts.author, opts.artifact, opts.message);
-        logger.success('Comment added.');
-      } catch (error) {
-        logger.error(error instanceof Error ? error.message : String(error));
+  .action(async (opts: { author: string; message: string; artifact: string }, cmd) => {
+    try {
+      const changeName = cmd.parent!.parent!.args[0]!;
+      const projectRoot = await findProjectRoot();
+      if (!projectRoot) {
+        logger.error('Not inside a SpecForge project.');
         process.exitCode = 1;
+        return;
       }
-    },
-  );
+
+      const changeDir = resolveSpecforgePath(projectRoot, CHANGES_DIR, changeName);
+      await addComment(changeDir, opts.author, opts.artifact, opts.message);
+      logger.success('Comment added.');
+    } catch (error) {
+      logger.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    }
+  });
 
 reviewCommand
   .command('approve')

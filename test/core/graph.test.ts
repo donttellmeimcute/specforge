@@ -8,9 +8,24 @@ const specDrivenSchema: WorkflowSchema = {
   description: 'Spec-driven development workflow',
   artifacts: [
     { id: 'proposal', generates: 'proposal.md', description: 'Proposal', requires: [] },
-    { id: 'specs', generates: 'specs/**/*.md', description: 'Specs', requires: ['proposal'] },
-    { id: 'design', generates: 'design.md', description: 'Design', requires: ['proposal'] },
-    { id: 'tasks', generates: 'tasks.md', description: 'Tasks', requires: ['specs', 'design'] },
+    {
+      id: 'specs',
+      generates: 'specs/**/*.md',
+      description: 'Specs',
+      requires: ['proposal'],
+    },
+    {
+      id: 'design',
+      generates: 'design.md',
+      description: 'Design',
+      requires: ['proposal'],
+    },
+    {
+      id: 'tasks',
+      generates: 'tasks.md',
+      description: 'Tasks',
+      requires: ['specs', 'design'],
+    },
   ],
 };
 
@@ -232,7 +247,9 @@ describe('ArtifactGraph', () => {
 
       // proposal has no deps → ready, rest are pending
       expect(summary.ready).toContain('proposal');
-      expect(summary.pending).toEqual(expect.arrayContaining(['specs', 'design', 'tasks']));
+      expect(summary.pending).toEqual(
+        expect.arrayContaining(['specs', 'design', 'tasks']),
+      );
       expect(summary.completed).toEqual([]);
     });
 

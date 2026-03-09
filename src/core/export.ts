@@ -34,9 +34,7 @@ export interface ProjectReport {
   };
 }
 
-export async function generateReport(
-  projectRoot: string,
-): Promise<ProjectReport> {
+export async function generateReport(projectRoot: string): Promise<ProjectReport> {
   const config = await loadProjectConfig(projectRoot);
   const changesDir = resolveSpecforgePath(projectRoot, CHANGES_DIR);
   const changes: ChangeReport[] = [];

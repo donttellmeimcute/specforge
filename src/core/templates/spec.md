@@ -1,6 +1,7 @@
 # Spec: {{DOMAIN}}
 
 ## Overview
+
 <!-- What behavior is being specified -->
 
 ## Specifications
@@ -12,9 +13,9 @@
 **Then** <!-- expected outcome -->
 
 ## Edge Cases
-<!-- List edge cases and their expected behavior -->
--
+
+## <!-- List edge cases and their expected behavior -->
 
 ## Constraints
-<!-- Any technical or business constraints -->
--
+
+## <!-- Any technical or business constraints -->

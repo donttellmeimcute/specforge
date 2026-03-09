@@ -35,10 +35,7 @@ export const WorkflowSchemaSchema = z.object({
   name: z
     .string()
     .min(1)
-    .regex(
-      /^[a-z][a-z0-9-]*$/,
-      'Must be lowercase alphanumeric with hyphens',
-    ),
+    .regex(/^[a-z][a-z0-9-]*$/, 'Must be lowercase alphanumeric with hyphens'),
 
   version: z.number().int().positive(),
 
@@ -57,9 +54,7 @@ export const WorkflowSchemaSchema = z.object({
     .refine(
       (artifacts) => {
         const ids = new Set(artifacts.map((a) => a.id));
-        return artifacts.every((a) =>
-          a.requires.every((dep) => ids.has(dep)),
-        );
+        return artifacts.every((a) => a.requires.every((dep) => ids.has(dep)));
       },
       { message: 'All dependency references must point to existing artifact IDs' },
     ),
@@ -96,12 +91,7 @@ export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 
 // ─── Change Metadata (.metadata.yaml inside each change) ─────────────────
 
-export const ChangeStatus = z.enum([
-  'active',
-  'completed',
-  'archived',
-  'abandoned',
-]);
+export const ChangeStatus = z.enum(['active', 'completed', 'archived', 'abandoned']);
 
 export type ChangeStatus = z.infer<typeof ChangeStatus>;
 
@@ -178,10 +168,10 @@ export const GlobalConfigSchema = z.object({
       conventionalCommits: z.boolean().default(true),
     })
     .optional(),
-    
+
   /** Opt-in or opt-out of anonymous usage telemetry */
   telemetry: z.boolean().optional(),
-  
+
   /** Unique anonymous ID for telemetry */
   telemetryId: z.string().optional(),
 });

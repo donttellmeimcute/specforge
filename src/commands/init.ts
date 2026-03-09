@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { initProject } from '../core/init.js';
-import { input, select } from '@inquirer/prompts';
+import { text, select, confirm, intro, outro } from '@clack/prompts';
+import { loadGlobalConfig, saveGlobalConfig } from '../core/global-config.js';
 
 export const initCommand = new Command('init')
   .description('Initialize SpecForge in the current project (interactive by default)')
@@ -11,20 +12,46 @@ export const initCommand = new Command('init')
     try {
       let { schema, context } = options;
 
+      intro("Welcome to SpecForge! Let's set up your project.");
+
       if (!options.yes) {
         if (!schema) {
-          schema = await select({
+          const schemaSelection = await select({
             message: 'Select a workflow schema:',
-            choices: [
-              { name: 'spec-driven (Default, Proposal -> Specs -> Design -> Tasks)', value: 'spec-driven' },
-              { name: 'tdd (Test-Driven, Proposal -> Tests -> Impl -> Docs)', value: 'tdd' },
+            options: [
+              {
+                label: 'spec-driven (Default, Proposal -> Specs -> Design -> Tasks)',
+                value: 'spec-driven',
+              },
+              {
+                label: 'tdd (Test-Driven, Proposal -> Tests -> Impl -> Docs)',
+                value: 'tdd',
+              },
             ],
           });
+          if (typeof schemaSelection === 'symbol') return;
+          schema = schemaSelection as string;
         }
         if (!context) {
-          context = await input({
-            message: 'Provide a brief context of the project (e.g., Tech stack, conventions):',
+          const contextSelection = await text({
+            message:
+              'Provide a brief context of the project (e.g., Tech stack, conventions):',
           });
+          if (typeof contextSelection === 'symbol') return;
+          context = contextSelection;
+        }
+
+        const globalConfig = await loadGlobalConfig();
+        if (globalConfig.telemetry === undefined) {
+          const optIn = await confirm({
+            message:
+              'SpecForge can collect anonymous usage metrics to improve the tool. Do you want to opt-in?',
+            initialValue: false,
+          });
+          if (typeof optIn !== 'symbol') {
+            globalConfig.telemetry = optIn;
+            await saveGlobalConfig(globalConfig);
+          }
         }
       }
 
@@ -32,11 +59,11 @@ export const initCommand = new Command('init')
         schema: schema || 'spec-driven',
         context: context,
       });
+
+      outro('SpecForge initialized successfully!');
     } catch (error) {
       const { logger } = await import('../utils/logger.js');
-      logger.error(
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     }
   });

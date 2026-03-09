@@ -5,6 +5,8 @@
  * Plugins are loaded from config.yaml and executed in order.
  */
 
+import { Command } from 'commander';
+
 export type HookName =
   | 'beforeInit'
   | 'afterInit'
@@ -26,6 +28,7 @@ export interface HookContext {
 export interface SpecForgePlugin {
   name: string;
   hooks?: Partial<Record<HookName, (ctx: HookContext) => Promise<void> | void>>;
+  commands?: Command[];
 }
 
 export type PluginFactory = (config?: Record<string, unknown>) => SpecForgePlugin;
@@ -49,6 +52,11 @@ export class PluginManager {
         await hook(context);
       }
     }
+  }
+
+  /** Get all registered plugins */
+  getPlugins(): SpecForgePlugin[] {
+    return this.plugins;
   }
 
   /** Get all registered plugin names */

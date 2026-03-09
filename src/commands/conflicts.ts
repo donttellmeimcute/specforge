@@ -34,9 +34,7 @@ export const conflictsCommand = new Command('conflicts')
 
       for (const conflict of conflicts) {
         console.error(chalk.red(`  ✖ ${conflict.file}`));
-        console.error(
-          chalk.dim(`    Modified by: ${conflict.changes.join(', ')}`),
-        );
+        console.error(chalk.dim(`    Modified by: ${conflict.changes.join(', ')}`));
       }
       console.error('');
     } catch (error) {

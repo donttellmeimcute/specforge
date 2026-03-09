@@ -12,7 +12,7 @@ import { createAIProvider } from '../core/ai-provider.js';
 import { writeTextFile } from '../utils/file-system.js';
 import { CHANGES_DIR } from '../utils/constants.js';
 import { join } from 'node:path';
-import ora from 'ora';
+import { spinner as clackSpinner, select, intro, outro } from '@clack/prompts';
 
 export const generateCommand = new Command('generate')
   .description('Generate an artifact using AI')
@@ -33,8 +33,9 @@ export const generateCommand = new Command('generate')
         output?: string;
       },
     ) => {
-      let spinner;
+      const s = clackSpinner();
       try {
+        intro('SpecForge AI Generation');
         const projectRoot = await findProjectRoot();
         if (!projectRoot) {
           logger.error('Not inside a SpecForge project. Run `specforge init` first.');
@@ -67,8 +68,19 @@ export const generateCommand = new Command('generate')
             process.exitCode = 1;
             return;
           }
-          targetId = next[0]!.definition.id;
-          logger.info(`Auto-selected artifact: ${targetId}`);
+          if (next.length === 1) {
+            targetId = next[0]!.definition.id;
+            logger.info(`Auto-selected artifact: ${targetId}`);
+          } else {
+            targetId = (await select({
+              message: 'Which artifact do you want to generate?',
+              options: next.map((n) => ({
+                value: n.definition.id,
+                label: n.definition.id,
+              })),
+            })) as string;
+            if (!targetId) return; // User cancelled
+          }
         }
 
         // Generate instructions (prompt)
@@ -107,21 +119,19 @@ export const generateCommand = new Command('generate')
           baseUrl: globalConfig.ai?.baseUrl,
         });
 
-        spinner = ora(`Generating "${targetId}" with ${provider.name}...`).start();
+        s.start(`Generating "${targetId}" with ${provider.name}...`);
 
         const content = await provider.generate(prompt);
 
         // Write output
         const node = graph.getNode(targetId)!;
-        const outputPath =
-          options.output ?? join(changeDir, node.definition.generates);
+        const outputPath = options.output ?? join(changeDir, node.definition.generates);
 
         await writeTextFile(outputPath, content);
-        spinner.succeed(`Generated: ${outputPath}`);
+        s.stop(`Generated: ${outputPath}`);
+        outro('Generation complete!');
       } catch (error) {
-        if (spinner) {
-           spinner.fail(`Generation failed`);
-        }
+        s.stop(`Generation failed`);
         logger.error(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }

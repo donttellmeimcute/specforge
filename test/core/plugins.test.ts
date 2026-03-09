@@ -16,13 +16,17 @@ describe('PluginManager', () => {
     pm.register({
       name: 'first',
       hooks: {
-        afterInit: async () => { order.push('first'); },
+        afterInit: async () => {
+          order.push('first');
+        },
       },
     });
     pm.register({
       name: 'second',
       hooks: {
-        afterInit: async () => { order.push('second'); },
+        afterInit: async () => {
+          order.push('second');
+        },
       },
     });
 
@@ -48,7 +52,9 @@ describe('PluginManager', () => {
     pm.register({
       name: 'ctx-checker',
       hooks: {
-        beforeCreateChange: async (ctx) => { receivedCtx = ctx; },
+        beforeCreateChange: async (ctx) => {
+          receivedCtx = ctx;
+        },
       },
     });
 

@@ -37,7 +37,8 @@ export const diffCommand = new Command('diff')
 
       for (const diff of changes) {
         const icon = diff.type === 'added' ? chalk.green('+') : chalk.yellow('~');
-        const label = diff.type === 'added' ? chalk.green('added') : chalk.yellow('modified');
+        const label =
+          diff.type === 'added' ? chalk.green('added') : chalk.yellow('modified');
         console.error(`  ${icon} ${diff.file} [${label}]`);
       }
       console.error('');

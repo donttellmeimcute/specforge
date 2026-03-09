@@ -14,7 +14,7 @@ Project Context:
 ${context}
 
 Rules for this artifact:
-${rules.map(r => `- ${r}`).join('\n')}
+${rules.map((r) => `- ${r}`).join('\n')}
 
 Output format expected:
 ${template}
@@ -23,7 +23,7 @@ Please generate the content now.`;
   },
   formatForAssistant(content) {
     return `<cursor-instruction>\n${content}\n</cursor-instruction>`;
-  }
+  },
 };
 
 export const clineAdapter: AIAssistantAdapter = {
@@ -44,7 +44,7 @@ Please execute this task automatically.`;
   },
   formatForAssistant(content) {
     return `[SYSTEM_INSTRUCTION]\n${content}\n[/SYSTEM_INSTRUCTION]`;
-  }
+  },
 };
 
 export const githubCopilotAdapter: AIAssistantAdapter = {
@@ -63,7 +63,7 @@ ${template}`;
   },
   formatForAssistant(content) {
     return content; // Copilot usually just takes plain text in chat
-  }
+  },
 };
 
 export const windsurfAdapter: AIAssistantAdapter = {
@@ -77,11 +77,38 @@ Template: \n${template}`;
   },
   formatForAssistant(content) {
     return `<windsurf-context>\n${content}\n</windsurf-context>`;
-  }
+  },
 };
 
-export const adapters = [cursorAdapter, clineAdapter, githubCopilotAdapter, windsurfAdapter];
+export const roocodeAdapter: AIAssistantAdapter = {
+  id: 'roocode',
+  name: 'RooCode',
+  generateInstruction(context, rules, template) {
+    return `[ROOCODE TASK]
+CONTEXT:
+${context}
+
+RULES:
+${rules.join('\n')}
+
+TEMPLATE:
+${template}
+
+Please execute this task automatically.`;
+  },
+  formatForAssistant(content) {
+    return `[SYSTEM_INSTRUCTION]\n${content}\n[/SYSTEM_INSTRUCTION]`;
+  },
+};
+
+export const adapters = [
+  cursorAdapter,
+  clineAdapter,
+  githubCopilotAdapter,
+  windsurfAdapter,
+  roocodeAdapter,
+];
 
 export function getAdapter(id: string): AIAssistantAdapter | undefined {
-  return adapters.find(a => a.id === id);
+  return adapters.find((a) => a.id === id);
 }

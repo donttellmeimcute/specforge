@@ -8,8 +8,7 @@ import { SCHEMAS_DIR } from '../utils/constants.js';
 import { ensureDir, writeTextFile, pathExists } from '../utils/file-system.js';
 import { stringify as stringifyYaml } from 'yaml';
 
-export const schemaCommand = new Command('schema')
-  .description('Manage workflow schemas');
+export const schemaCommand = new Command('schema').description('Manage workflow schemas');
 
 schemaCommand
   .command('list')
@@ -67,9 +66,7 @@ schemaCommand
           artifact.requires.length > 0
             ? chalk.dim(` ← [${artifact.requires.join(', ')}]`)
             : '';
-        console.error(
-          `  • ${chalk.bold(artifact.id)} → ${artifact.generates}${deps}`,
-        );
+        console.error(`  • ${chalk.bold(artifact.id)} → ${artifact.generates}${deps}`);
         console.error(chalk.dim(`    ${artifact.description}`));
       }
       console.error('');
@@ -124,9 +121,7 @@ schemaCommand
       const schema = await resolveSchema(name, projectRoot);
 
       // Check for cycles by attempting topological sort
-      const { ArtifactGraph } = await import(
-        '../core/artifact-graph/graph.js'
-      );
+      const { ArtifactGraph } = await import('../core/artifact-graph/graph.js');
       const graph = new ArtifactGraph(schema);
       graph.topologicalSort();
 
@@ -149,9 +144,7 @@ schemaCommand
         return;
       }
 
-      const { loadProjectConfig } = await import(
-        '../core/project-config.js'
-      );
+      const { loadProjectConfig } = await import('../core/project-config.js');
       const config = await loadProjectConfig(projectRoot);
       logger.out(config.schema);
     } catch (error) {

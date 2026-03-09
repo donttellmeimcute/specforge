@@ -22,9 +22,7 @@ export const archiveCommand = new Command('archive')
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
-        logger.error(
-          'Not inside a SpecForge project. Run `specforge init` first.',
-        );
+        logger.error('Not inside a SpecForge project. Run `specforge init` first.');
         process.exitCode = 1;
         return;
       }
@@ -78,9 +76,7 @@ export const archiveCommand = new Command('archive')
       const targetDir = join(archiveDir, changeName);
 
       if (await pathExists(targetDir)) {
-        logger.error(
-          `Archive target already exists: ${targetDir}. Remove it first.`,
-        );
+        logger.error(`Archive target already exists: ${targetDir}. Remove it first.`);
         process.exitCode = 1;
         return;
       }
@@ -93,26 +89,25 @@ export const archiveCommand = new Command('archive')
         try {
           // Push to remote
           execSync('git push -u origin HEAD', { stdio: 'inherit' });
-          
+
           // Try extracting Asana ID from tags
-          const asanaTag = metadata.tags?.find(tag => tag.startsWith('asana-'));
+          const asanaTag = metadata.tags?.find((tag) => tag.startsWith('asana-'));
           const asanaId = asanaTag ? asanaTag.replace('asana-', '') : 'UNKNOWN';
-          
+
           const title = `feat: ${changeName} (Asana #${asanaId})`;
           const body = `Resolves Asana ticket #${asanaId}. Specs archived via SpecForge.`;
-          
+
           createPullRequestWithGhCli(title, body);
           logger.success('Pull Request created successfully via gh cli.');
         } catch (error) {
-          logger.error(`Failed to create Pull Request: ${error instanceof Error ? error.message : String(error)}`);
+          logger.error(
+            `Failed to create Pull Request: ${error instanceof Error ? error.message : String(error)}`,
+          );
           // Note: we don't exit with code 1 here since archive was successful
         }
       }
-
     } catch (error) {
-      logger.error(
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     }
   });

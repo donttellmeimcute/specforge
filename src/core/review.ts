@@ -115,9 +115,7 @@ export async function approveChange(
   }
 
   // Auto-approve if all reviewers approved
-  const allApproved = state.reviewers.every((r) =>
-    state.approvedBy.includes(r),
-  );
+  const allApproved = state.reviewers.every((r) => state.approvedBy.includes(r));
   if (allApproved && state.reviewers.length > 0) {
     state.status = 'approved';
     state.approvedAt = new Date().toISOString();

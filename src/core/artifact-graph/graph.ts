@@ -115,9 +115,7 @@ export class ArtifactGraph {
     }
 
     if (sorted.length !== this.nodes.size) {
-      const remaining = [...this.nodes.keys()].filter(
-        (id) => !sorted.includes(id),
-      );
+      const remaining = [...this.nodes.keys()].filter((id) => !sorted.includes(id));
       throw new Error(
         `Cycle detected in artifact graph. Involved artifacts: ${remaining.join(', ')}`,
       );

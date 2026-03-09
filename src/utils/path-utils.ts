@@ -6,9 +6,7 @@ import { pathExists } from './file-system.js';
  * Walk up the directory tree to find the nearest directory containing `.specforge/`.
  * Returns the project root path or null if not found.
  */
-export async function findProjectRoot(
-  startDir?: string,
-): Promise<string | null> {
+export async function findProjectRoot(startDir?: string): Promise<string | null> {
   let current = resolve(startDir ?? process.cwd());
 
   // eslint-disable-next-line no-constant-condition
@@ -28,9 +26,6 @@ export async function findProjectRoot(
 }
 
 /** Resolve a path relative to the `.specforge/` directory */
-export function resolveSpecforgePath(
-  projectRoot: string,
-  ...segments: string[]
-): string {
+export function resolveSpecforgePath(projectRoot: string, ...segments: string[]): string {
   return join(projectRoot, SPECFORGE_DIR, ...segments);
 }

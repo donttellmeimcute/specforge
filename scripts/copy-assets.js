@@ -13,10 +13,8 @@ cpSync(
 );
 
 // Copy templates
-cpSync(
-  join(root, 'src', 'core', 'templates'),
-  join(root, 'dist', 'core', 'templates'),
-  { recursive: true },
-);
+cpSync(join(root, 'src', 'core', 'templates'), join(root, 'dist', 'core', 'templates'), {
+  recursive: true,
+});
 
 console.log('Assets copied to dist/');

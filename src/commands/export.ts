@@ -2,7 +2,12 @@ import { Command } from 'commander';
 import { join } from 'node:path';
 import { findProjectRoot } from '../utils/path-utils.js';
 import { logger } from '../utils/logger.js';
-import { generateReport, reportToJson, reportToHtml, reportToMarkdown } from '../core/export.js';
+import {
+  generateReport,
+  reportToJson,
+  reportToHtml,
+  reportToMarkdown,
+} from '../core/export.js';
 import { writeTextFile } from '../utils/file-system.js';
 
 export const exportCommand = new Command('export')

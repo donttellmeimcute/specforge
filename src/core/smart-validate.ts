@@ -37,7 +37,7 @@ export async function deepValidate(
 ): Promise<ValidationResult> {
   let graph: ArtifactGraph;
   let changeDir: string;
-  
+
   if (typeof projectOrGraph === 'string') {
     const { resolveSpecforgePath } = await import('../utils/path-utils.js');
     const { CHANGES_DIR } = await import('../utils/constants.js');
@@ -45,15 +45,15 @@ export async function deepValidate(
     const { loadProjectConfig } = await import('./project-config.js');
     const { resolveSchema } = await import('./artifact-graph/resolver.js');
     const { detectArtifactStates } = await import('./artifact-graph/state.js');
-    
+
     changeDir = resolveSpecforgePath(projectOrGraph, CHANGES_DIR, changeNameOrDir);
     const metadata = await loadChangeMetadata(changeDir);
     if (!metadata) throw new Error(`Change not found: ${changeNameOrDir}`);
-    
+
     const config = await loadProjectConfig(projectOrGraph);
     const schemaName = metadata.schema ?? config.schema;
     const schema = await resolveSchema(schemaName, projectOrGraph);
-    
+
     graph = new ArtifactGraph(schema);
     await detectArtifactStates(graph, changeDir);
   } else {
@@ -104,12 +104,10 @@ export async function deepValidate(
 
     // Warn about diverged artifacts (out-of-order editing)
     if (node.status === 'diverged') {
-      const incompleteDeps = graph
-        .getDependencies(id)
-        .filter((depId) => {
-          const s = graph.getNode(depId)?.status;
-          return s !== undefined && !isEffectivelyCompleted(s) && s !== 'diverged';
-        });
+      const incompleteDeps = graph.getDependencies(id).filter((depId) => {
+        const s = graph.getNode(depId)?.status;
+        return s !== undefined && !isEffectivelyCompleted(s) && s !== 'diverged';
+      });
       issues.push({
         level: 'warning',
         artifact: id,
@@ -148,13 +146,20 @@ export async function deepValidate(
   const baseScore = totalArtifacts > 0 ? (completedCount / totalArtifacts) * 100 : 0;
   const errorPenalty = issues.filter((i) => i.level === 'error').length * 15;
   const warningPenalty = issues.filter((i) => i.level === 'warning').length * 5;
-  const score = Math.max(0, Math.min(100, Math.round(baseScore - errorPenalty - warningPenalty)));
+  const score = Math.max(
+    0,
+    Math.min(100, Math.round(baseScore - errorPenalty - warningPenalty)),
+  );
 
   const result: ValidationResult = { score, issues };
 
   // Generate self-healing instructions when score is below the 90-point threshold
   if (score < 90) {
-    result.selfHealingInstructions = generateSelfHealingInstructions(score, issues, graph);
+    result.selfHealingInstructions = generateSelfHealingInstructions(
+      score,
+      issues,
+      graph,
+    );
   }
 
   return result;
@@ -224,12 +229,57 @@ export async function checkConsistency(
  */
 function extractKeywords(content: string): string[] {
   const stopWords = new Set([
-    'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
-    'her', 'was', 'one', 'our', 'out', 'has', 'have', 'from', 'they',
-    'been', 'said', 'each', 'which', 'their', 'will', 'other', 'about',
-    'many', 'then', 'them', 'these', 'some', 'would', 'make', 'like',
-    'into', 'could', 'time', 'very', 'when', 'come', 'that', 'with',
-    'this', 'what', 'also', 'more', 'should', 'must', 'shall', 'todo',
+    'the',
+    'and',
+    'for',
+    'are',
+    'but',
+    'not',
+    'you',
+    'all',
+    'can',
+    'had',
+    'her',
+    'was',
+    'one',
+    'our',
+    'out',
+    'has',
+    'have',
+    'from',
+    'they',
+    'been',
+    'said',
+    'each',
+    'which',
+    'their',
+    'will',
+    'other',
+    'about',
+    'many',
+    'then',
+    'them',
+    'these',
+    'some',
+    'would',
+    'make',
+    'like',
+    'into',
+    'could',
+    'time',
+    'very',
+    'when',
+    'come',
+    'that',
+    'with',
+    'this',
+    'what',
+    'also',
+    'more',
+    'should',
+    'must',
+    'shall',
+    'todo',
   ]);
 
   const words = content
@@ -283,7 +333,9 @@ export function generateSelfHealingInstructions(
     .getAllNodes()
     .filter((n) => n.status === 'pending' || n.status === 'ready');
   if (incomplete.length > 0) {
-    instructions.push('--- Artifacts not yet started (completing them raises the score) ---');
+    instructions.push(
+      '--- Artifacts not yet started (completing them raises the score) ---',
+    );
     for (const node of incomplete) {
       instructions.push(
         `[${node.definition.id}] Status: ${node.status}. ` +
@@ -300,12 +352,10 @@ export function generateSelfHealingInstructions(
     instructions.push('--- Consistency drift to resolve ---');
     for (const node of driftedNodes) {
       if (node.status === 'diverged') {
-        const missingDeps = graph
-          .getDependencies(node.definition.id)
-          .filter((depId) => {
-            const s = graph.getNode(depId)?.status;
-            return s !== undefined && !isEffectivelyCompleted(s) && s !== 'diverged';
-          });
+        const missingDeps = graph.getDependencies(node.definition.id).filter((depId) => {
+          const s = graph.getNode(depId)?.status;
+          return s !== undefined && !isEffectivelyCompleted(s) && s !== 'diverged';
+        });
         instructions.push(
           `[${node.definition.id}] Diverged — create/complete: ${missingDeps.join(', ')}`,
         );

@@ -54,15 +54,10 @@ export async function initProject(
 
   // Write .gitkeep files so directories are tracked
   await writeTextFile(join(specforgeDir, SPECS_DIR, '.gitkeep'), '');
-  await writeTextFile(
-    join(specforgeDir, CHANGES_DIR, ARCHIVE_DIR, '.gitkeep'),
-    '',
-  );
+  await writeTextFile(join(specforgeDir, CHANGES_DIR, ARCHIVE_DIR, '.gitkeep'), '');
   await writeTextFile(join(specforgeDir, SCHEMAS_DIR, '.gitkeep'), '');
 
   logger.success(`SpecForge initialized in ${SPECFORGE_DIR}/`);
   logger.info(`Schema: ${config.schema}`);
-  logger.info(
-    `Run \`specforge new change <name>\` to create your first change.`,
-  );
+  logger.info(`Run \`specforge new change <name>\` to create your first change.`);
 }

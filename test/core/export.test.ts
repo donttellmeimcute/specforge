@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { initProject } from '../../src/core/init.js';
 import { createChange } from '../../src/core/change.js';
-import { generateReport, reportToJson, reportToHtml, reportToMarkdown } from '../../src/core/export.js';
+import {
+  generateReport,
+  reportToJson,
+  reportToHtml,
+  reportToMarkdown,
+} from '../../src/core/export.js';
 
 describe('export', () => {
   let tempDir: string;

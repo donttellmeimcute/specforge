@@ -24,18 +24,12 @@ export const statusCommand = new Command('status')
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
-        logger.error(
-          'Not inside a SpecForge project. Run `specforge init` first.',
-        );
+        logger.error('Not inside a SpecForge project. Run `specforge init` first.');
         process.exitCode = 1;
         return;
       }
 
-      const changeDir = resolveSpecforgePath(
-        projectRoot,
-        CHANGES_DIR,
-        changeName,
-      );
+      const changeDir = resolveSpecforgePath(projectRoot, CHANGES_DIR, changeName);
 
       // Load metadata to check for schema override
       const metadata = await loadChangeMetadata(changeDir);
@@ -91,9 +85,7 @@ export const statusCommand = new Command('status')
       const total = sorted.length;
       const done = summary.completed.length;
       const bar = `[${'█'.repeat(done)}${'░'.repeat(total - done)}]`;
-      console.error(
-        `  Progress: ${bar} ${done}/${total}`,
-      );
+      console.error(`  Progress: ${bar} ${done}/${total}`);
 
       if (graph.isComplete()) {
         console.error(
@@ -105,16 +97,12 @@ export const statusCommand = new Command('status')
         const next = graph.getNextArtifacts();
         if (next.length > 0) {
           const nextIds = next.map((n) => n.definition.id).join(', ');
-          console.error(
-            chalk.blue(`\n  Next: ${nextIds}`),
-          );
+          console.error(chalk.blue(`\n  Next: ${nextIds}`));
         }
       }
       console.error('');
     } catch (error) {
-      logger.error(
-        error instanceof Error ? error.message : String(error),
-      );
+      logger.error(error instanceof Error ? error.message : String(error));
       process.exitCode = 1;
     }
   });

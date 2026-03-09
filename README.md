@@ -76,21 +76,21 @@ proposal ──→ specs ──→ tasks
 
 ## Características
 
-| Categoría | Descripción |
-|-----------|-------------|
-| **CLI Completa** | 17 comandos para gestionar todo el ciclo de vida |
-| **Grafo de Artefactos** | DAG con ordenamiento topológico (Kahn) y detección de ciclos |
-| **Schemas Flexibles** | Dos schemas built-in (`spec-driven`, `tdd`) + schemas personalizados |
-| **Generación con IA** | Soporte para OpenAI, Anthropic, Ollama (local) y Claude Code (local CLI) |
-| **Validación Profunda** | Scoring de completitud, consistencia de keywords, verificación de cadena |
-| **Diff & Merge** | Comparar y fusionar specs entre cambios y el main |
-| **Detección de Conflictos** | Identificar cambios concurrentes que tocan los mismos archivos |
-| **Watch Mode** | Monitoreo en tiempo real con refresco automático de estado |
-| **Sistema de Plugins** | Hooks en el ciclo de vida (init, create, archive, validate) |
-| **Git Integration** | Branches automáticos, conventional commits, detección de estado |
-| **Integraciones Externas**| Soporte para Asana (tracking) y GitHub CLI (Pull Requests) |
-| **Revisión Colaborativa** | Flujo draft → review → approved con comentarios |
-| **Exportación** | Reportes en JSON y HTML con dashboard visual |
+| Categoría                 | Descripción                                                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **CLI Completa**          | 20+ comandos para gestionar todo el ciclo de vida, con autocompletado y menús interactivos (`@clack/prompts`)                          |
+| **Grafo de Artefactos**   | DAG con ordenamiento topológico (Kahn) y detección de ciclos                                                                           |
+| **Schemas Flexibles**     | Dos schemas built-in (`spec-driven`, `tdd`) + schemas personalizados                                                                   |
+| **Generación con IA**     | Soporte para OpenAI, Anthropic, Ollama, Claude Code CLI, y adaptadores nativos (`--adapter cursor\|cline\|roocode\|windsurf\|copilot`) |
+| **Validación Profunda**   | Scoring de completitud, consistencia de keywords, y generación de _Self-Healing Instructions_ para la IA                               |
+| **Diff & Merge**          | Comparar y fusionar specs entre cambios y el main                                                                                      |
+| **Smart Sync UI**         | Comando `reconcile` interactivo para resolver divergencias y conflictos sobrescribiendo con IA o actualizando las specs                |
+| **Watch Mode**            | Monitoreo en tiempo real con refresco automático de estado                                                                             |
+| **GitOps Zero-Touch**     | Comando `publish` que valida al 100%, empaqueta (conventional commits), pushea y abre PR en GitHub automáticamente                     |
+| **Sistema de Plugins**    | Hooks en el ciclo de vida y plugins oficiales pre-instalados para `asana` y `github`                                                   |
+| **Telemetría y CI/CD**    | Telemetría (PostHog opt-in) y pipeline configurado con GitHub Actions y Changesets                                                     |
+| **Revisión Colaborativa** | Flujo draft → review → approved con comentarios                                                                                        |
+| **Exportación**           | Reportes en JSON y HTML con dashboard visual                                                                                           |
 
 ---
 
@@ -167,6 +167,15 @@ specforge validate add-authentication --deep
 specforge archive add-authentication
 ```
 
+### Autocompletado de CLI
+
+Specforge soporta autocompletado nativo de comandos para Bash, Zsh y Fish a través de `omelette`.
+Para instalarlo globalmente en tu terminal:
+
+```bash
+specforge --setup
+```
+
 ---
 
 ## Estructura del Proyecto
@@ -217,6 +226,7 @@ Opciones:
 ```
 
 **Ejemplo:**
+
 ```bash
 specforge init --schema tdd --context "Microservicios en Go con gRPC"
 ```
@@ -241,6 +251,7 @@ Opciones:
 ```
 
 **Ejemplo:**
+
 ```bash
 specforge new change add-payments --schema tdd --tags payments billing --author alice
 specforge new change implement-login --asana 1234567890
@@ -260,6 +271,7 @@ Opciones:
 ```
 
 **Salida ejemplo:**
+
 ```
   Artifacts for "add-auth":
 
@@ -272,6 +284,7 @@ Opciones:
 ```
 
 Iconos:
+
 - ⬜ `pending` — Dependencias no completadas
 - 🔵 `ready` — Listo para comenzar
 - 🔄 `in-progress` — En progreso
@@ -312,12 +325,14 @@ Opciones:
 ```
 
 La validación estándar verifica:
+
 - Sintaxis YAML de `config.yaml`
 - Resolución del schema
 - Existencia de `.metadata.yaml` en cada cambio
 - Consistencia del grafo de artefactos
 
 Con `--deep`, además:
+
 - Verifica que artefactos "completed" tengan contenido real (>50 caracteres)
 - Valida que las dependencias se completaron en orden
 - Análisis de consistencia de keywords entre artefactos dependientes
@@ -338,6 +353,7 @@ Opciones:
 ```
 
 **Ejemplo:**
+
 ```bash
 specforge archive add-authentication --pr
 ```
@@ -371,6 +387,7 @@ specforge schema fork <source> <name>
 Copia un schema built-in al proyecto para personalizarlo.
 
 **Ejemplo:**
+
 ```bash
 specforge schema fork spec-driven my-workflow
 # Crea .specforge/schemas/my-workflow/schema.yaml
@@ -414,6 +431,7 @@ specforge config set <key> <value>
 Establece un valor de configuración. Keys soportadas: `schema`, `context`.
 
 **Ejemplo:**
+
 ```bash
 specforge config set schema tdd
 specforge config set context "React 19 + Bun + Drizzle ORM"
@@ -432,16 +450,17 @@ specforge instructions <change> [artifact] [opciones]
 
 Opciones:
   --json                 Salida en formato JSON
+  --adapter <id>         Formatea para un IDE/Agente específico (cursor, cline, roocode, copilot, windsurf)
+  -o, --out <path>       Guarda el prompt en un archivo (ej: prompt.md)
 ```
 
-Si no se especifica `artifact`, auto-detecta el siguiente artefacto listo. El prompt incluye:
+Si no se especifica `artifact`, auto-detecta interactivamente el siguiente artefacto listo. El prompt incluye:
 
 - Descripción y requisitos del artefacto
-- Contexto del proyecto
-- Reglas personalizadas por artefacto
+- Contexto del proyecto y reglas
 - Contenido completo de dependencias ya completadas
 - Template del artefacto
-- Ruta de salida esperada
+- Ruta de salida esperada (formateada según el adaptador si se especifica)
 
 ---
 
@@ -460,6 +479,7 @@ Opciones:
 ```
 
 **Ejemplos:**
+
 ```bash
 # Generar el siguiente artefacto con OpenAI
 specforge generate add-auth --provider openai --model gpt-4-turbo
@@ -490,6 +510,7 @@ specforge diff <change> [--json]
 ```
 
 **Salida:**
+
 ```
   Diff for "add-auth":
 
@@ -507,6 +528,41 @@ specforge merge <change>
 
 Copia todos los archivos modificados/añadidos de `.specforge/changes/<change>/specs/` a `.specforge/specs/`.
 
+### GitOps "Zero-Touch"
+
+#### `specforge publish <change>`
+
+Verifica que el cambio esté 100% completo y empaqueta el ciclo entero automáticamente.
+
+```bash
+specforge publish add-authentication
+```
+
+**Flujo:**
+
+1. Validacion Profunda (Deep Validation) para confirmar 100% completitud del workflow
+2. Crea una rama (`specforge/add-authentication` o `feat/asana-123...`)
+3. Add y Commit convencional (`feat(add-auth): Complete workflow specifications...`)
+4. Git Push a `origin`
+5. Invoca a GitHub CLI (`gh pr create`) para abrir el Pull Request inmediatamente
+
+---
+
+### Sync UI y Reconciliación
+
+#### `specforge reconcile <change>`
+
+Detecta divergencias entre el código implementado y las especificaciones escritas y pregunta al desarrollador cómo proceder.
+
+```bash
+specforge reconcile add-authentication
+```
+
+**Flujo Interactivo:**
+
+- Muestra el archivo en conflicto
+- Pregunta: "¿Sobrescribir el código con IA para que coincida con la spec?", "¿Actualizar la especificación usando el código como base?", o "Ignorar".
+
 #### `specforge conflicts`
 
 Detecta conflictos entre cambios concurrentes.
@@ -518,6 +574,7 @@ specforge conflicts [--json]
 Analiza todos los cambios activos y reporta archivos modificados por múltiple cambios.
 
 **Salida:**
+
 ```
   Conflicts detected:
 
@@ -561,6 +618,7 @@ Opciones:
 ```
 
 **Ejemplos:**
+
 ```bash
 # Exportar JSON
 specforge export
@@ -570,6 +628,7 @@ specforge export --format html -o report.html
 ```
 
 El reporte HTML incluye:
+
 - Cards de métricas (total, activos, completados, archivados)
 - Tabla de cambios con badges de estado
 - Progreso de artefactos por cambio
@@ -622,6 +681,7 @@ specforge review <change> request-changes -r <reviewer> -m <message>
 ```
 
 **Ejemplo completo de flujo:**
+
 ```bash
 # Solicitar revisión
 specforge review add-auth request -r alice bob
@@ -651,12 +711,12 @@ proposal ──→ specs ──→ tasks
          └──→ design ──┘
 ```
 
-| Artefacto | Genera | Depende de | Descripción |
-|-----------|--------|------------|-------------|
-| `proposal` | `proposal.md` | — | Qué se quiere construir y por qué |
-| `specs` | `specs/**/*.md` | `proposal` | Especificaciones de comportamiento (Given/When/Then) |
-| `design` | `design.md` | `proposal` | Documento de diseño técnico |
-| `tasks` | `tasks.md` | `specs`, `design` | Tareas de implementación con checkboxes |
+| Artefacto  | Genera          | Depende de        | Descripción                                          |
+| ---------- | --------------- | ----------------- | ---------------------------------------------------- |
+| `proposal` | `proposal.md`   | —                 | Qué se quiere construir y por qué                    |
+| `specs`    | `specs/**/*.md` | `proposal`        | Especificaciones de comportamiento (Given/When/Then) |
+| `design`   | `design.md`     | `proposal`        | Documento de diseño técnico                          |
+| `tasks`    | `tasks.md`      | `specs`, `design` | Tareas de implementación con checkboxes              |
 
 ### tdd
 
@@ -664,12 +724,12 @@ proposal ──→ specs ──→ tasks
 proposal ──→ tests ──→ implementation ──→ docs
 ```
 
-| Artefacto | Genera | Depende de | Descripción |
-|-----------|--------|------------|-------------|
-| `proposal` | `proposal.md` | — | Propuesta del cambio |
-| `tests` | `tests/**/*.md` | `proposal` | Especificaciones de test y criterios de aceptación |
-| `implementation` | `implementation.md` | `tests` | Plan de implementación basado en los tests |
-| `docs` | `docs.md` | `implementation` | Documentación del cambio implementado |
+| Artefacto        | Genera              | Depende de       | Descripción                                        |
+| ---------------- | ------------------- | ---------------- | -------------------------------------------------- |
+| `proposal`       | `proposal.md`       | —                | Propuesta del cambio                               |
+| `tests`          | `tests/**/*.md`     | `proposal`       | Especificaciones de test y criterios de aceptación |
+| `implementation` | `implementation.md` | `tests`          | Plan de implementación basado en los tests         |
+| `docs`           | `docs.md`           | `implementation` | Documentación del cambio implementado              |
 
 ### Schemas personalizados
 
@@ -685,31 +745,32 @@ O crea manualmente `.specforge/schemas/mi-flujo/schema.yaml`:
 ```yaml
 name: mi-flujo
 version: 1
-description: "Mi flujo de trabajo personalizado"
+description: 'Mi flujo de trabajo personalizado'
 
 artifacts:
   - id: research
     generates: research.md
-    description: "Investigación y análisis de alternativas"
+    description: 'Investigación y análisis de alternativas'
     requires: []
 
   - id: rfc
     generates: rfc.md
-    description: "Request for Comments"
+    description: 'Request for Comments'
     requires: [research]
 
   - id: prototype
-    generates: "prototype/**/*"
-    description: "Prototipo funcional"
+    generates: 'prototype/**/*'
+    description: 'Prototipo funcional'
     requires: [rfc]
 
   - id: review-doc
     generates: review.md
-    description: "Documento de revisión post-prototipo"
+    description: 'Documento de revisión post-prototipo'
     requires: [prototype]
 ```
 
 **Reglas de validación:**
+
 - `name` debe ser lowercase alfanumérico con guiones
 - `version` debe ser un entero positivo
 - Mínimo 1 artefacto
@@ -738,14 +799,14 @@ context: |
 # Reglas por artefacto (se incluyen en instrucciones/prompts)
 rules:
   proposal:
-    - "Incluir análisis de impacto en performance"
-    - "Máximo 2 páginas"
+    - 'Incluir análisis de impacto en performance'
+    - 'Máximo 2 páginas'
   specs:
-    - "Usar formato Given/When/Then"
-    - "Incluir edge cases para error handling"
+    - 'Usar formato Given/When/Then'
+    - 'Incluir edge cases para error handling'
   design:
-    - "Incluir diagrama de secuencia"
-    - "Documentar trade-offs considerados"
+    - 'Incluir diagrama de secuencia'
+    - 'Documentar trade-offs considerados'
 
 # Plugins
 plugins:
@@ -764,16 +825,16 @@ defaultSchema: spec-driven
 
 # Configuración de IA
 ai:
-  provider: openai          # openai | anthropic | ollama | claude-code
-  model: gpt-4-turbo        # Modelo específico
-  apiKey: sk-...             # API key (o usar variable de entorno)
-  baseUrl: https://api.openai.com/v1/  # URL base (opcional)
+  provider: openai # openai | anthropic | ollama | claude-code
+  model: gpt-4-turbo # Modelo específico
+  apiKey: sk-... # API key (o usar variable de entorno)
+  baseUrl: https://api.openai.com/v1/ # URL base (opcional)
 
 # Configuración de Git
 git:
-  autoCommit: false          # Auto-commit al crear/modificar cambios
-  autoBranch: false          # Crear branch automáticamente
-  conventionalCommits: true  # Usar formato conventional commits
+  autoCommit: false # Auto-commit al crear/modificar cambios
+  autoBranch: false # Crear branch automáticamente
+  conventionalCommits: true # Usar formato conventional commits
 ```
 
 ---
@@ -861,16 +922,16 @@ Los plugins extienden SpecForge enganchándose en eventos del ciclo de vida.
 
 ### Hooks disponibles
 
-| Hook | Cuándo se ejecuta |
-|------|--------------------|
-| `beforeInit` | Antes de crear `.specforge/` |
-| `afterInit` | Después de crear `.specforge/` |
-| `beforeCreateChange` | Antes de crear un cambio |
-| `afterCreateChange` | Después de crear un cambio |
-| `beforeArchive` | Antes de archivar un cambio |
-| `afterArchive` | Después de archivar un cambio |
-| `beforeValidate` | Antes de la validación |
-| `afterValidate` | Después de la validación |
+| Hook                 | Cuándo se ejecuta              |
+| -------------------- | ------------------------------ |
+| `beforeInit`         | Antes de crear `.specforge/`   |
+| `afterInit`          | Después de crear `.specforge/` |
+| `beforeCreateChange` | Antes de crear un cambio       |
+| `afterCreateChange`  | Después de crear un cambio     |
+| `beforeArchive`      | Antes de archivar un cambio    |
+| `afterArchive`       | Después de archivar un cambio  |
+| `beforeValidate`     | Antes de la validación         |
+| `afterValidate`      | Después de la validación       |
 
 ### Definir un plugin
 
@@ -895,9 +956,9 @@ const myPlugin: SpecForgePlugin = {
 
 ```typescript
 interface HookContext {
-  projectRoot: string;    // Raíz del proyecto
-  changeName?: string;    // Nombre del cambio (si aplica)
-  changeDir?: string;     // Directorio del cambio (si aplica)
+  projectRoot: string; // Raíz del proyecto
+  changeName?: string; // Nombre del cambio (si aplica)
+  changeDir?: string; // Directorio del cambio (si aplica)
   [key: string]: unknown; // Datos adicionales
 }
 ```
@@ -920,15 +981,19 @@ interface HookContext {
 SpecForge puede auto-generar la propuesta inicial y el contexto técnico leyendo directamente de un ticket de Asana.
 
 1. Configura el token de acceso en tus variables de entorno (`.env` o global):
+
 ```bash
 export ASANA_ACCESS_TOKEN=1/12345678...
 ```
+
 2. Ejecuta la creación del cambio apuntando al ID:
+
 ```bash
 specforge new change add-sso --asana 120123456789
 ```
 
 **Lo que hace automáticamente:**
+
 - Crea la rama en Git (`feat/asana-120123456789-add-sso`)
 - Lee el título, descripción y el usuario asignado
 - Genera el `proposal.md` con esta información
@@ -945,6 +1010,7 @@ specforge archive add-sso --pr
 ```
 
 **Lo que hace automáticamente:**
+
 - Verifica y archiva el cambio localmente
 - Hace `git push -u origin HEAD`
 - Lee los tags del cambio para detectar un ID de Asana (si existe)
@@ -1022,6 +1088,7 @@ specforge validate add-auth     # Validar un cambio específico
 ```
 
 Verifica:
+
 - Sintaxis YAML de configuración
 - Resolución del schema
 - Existencia y validez de `.metadata.yaml`
@@ -1035,6 +1102,7 @@ specforge validate add-auth --deep --json
 ```
 
 Análisis adicional:
+
 - **Completitud**: Artefactos "completed" con menos de 50 caracteres se marcan como stubs
 - **Cadena de dependencias**: Verifica que las dependencias se completaron antes del artefacto
 - **Consistencia de keywords**: Analiza overlap de términos entre artefactos dependientes
@@ -1044,11 +1112,11 @@ Análisis adicional:
 
 ### Niveles de issues
 
-| Nivel | Descripción | Ejemplo |
-|-------|-------------|---------|
-| `error` | Bloqueante | Dependencia incompleta marcada como completada |
-| `warning` | Preocupante | Contenido stub, bajo overlap de keywords |
-| `info` | Informativo | Artefacto en progreso |
+| Nivel     | Descripción | Ejemplo                                        |
+| --------- | ----------- | ---------------------------------------------- |
+| `error`   | Bloqueante  | Dependencia incompleta marcada como completada |
+| `warning` | Preocupante | Contenido stub, bajo overlap de keywords       |
+| `info`    | Informativo | Artefacto en progreso                          |
 
 ---
 
@@ -1063,6 +1131,7 @@ specforge diff add-auth
 ```
 
 Tipos de diferencia:
+
 - `added` — Archivo nuevo, no existe en main
 - `modified` — Archivo existe en ambos con contenido diferente
 - `unchanged` — Sin cambios
@@ -1131,6 +1200,7 @@ specforge export --format html -o dashboard.html
 ```
 
 Genera un dashboard HTML auto-contenido con:
+
 - Cards de métricas con números destacados
 - Tabla de cambios con badges de estado por colores
 - Progreso de artefactos completados vs total
@@ -1161,15 +1231,15 @@ approvedBy:
 comments:
   - author: alice
     artifact: design
-    timestamp: "2026-03-06T14:00:00.000Z"
-    message: "El diagrama de secuencia está claro"
+    timestamp: '2026-03-06T14:00:00.000Z'
+    message: 'El diagrama de secuencia está claro'
     resolved: false
   - author: bob
     artifact: specs
-    timestamp: "2026-03-06T14:30:00.000Z"
-    message: "Faltan edge cases para timeout"
+    timestamp: '2026-03-06T14:30:00.000Z'
+    message: 'Faltan edge cases para timeout'
     resolved: false
-requestedAt: "2026-03-06T13:00:00.000Z"
+requestedAt: '2026-03-06T13:00:00.000Z'
 ```
 
 ### Uso programático (Revisión)
@@ -1277,75 +1347,42 @@ import {
 ```
 src/
 ├── cli/
-│   └── index.ts                    # Punto de entrada CLI (Commander.js)
-├── commands/                       # Implementación de cada comando
+│   └── index.ts                    # Punto de entrada CLI (Commander.js + Omelette)
+├── commands/                       # Implementación de cada comando interactivo
 │   ├── init.ts                     # specforge init
 │   ├── new-change.ts               # specforge new change
-│   ├── status.ts                   # specforge status
-│   ├── instructions.ts             # specforge instructions
-│   ├── list.ts                     # specforge list
-│   ├── validate.ts                 # specforge validate
-│   ├── archive.ts                  # specforge archive
-│   ├── schema.ts                   # specforge schema *
-│   ├── config.ts                   # specforge config *
-│   ├── generate.ts                 # specforge generate
-│   ├── diff-merge.ts               # specforge diff / merge
-│   ├── conflicts.ts                # specforge conflicts
-│   ├── export.ts                   # specforge export
-│   ├── watch.ts                    # specforge watch
-│   └── review.ts                   # specforge review *
+│   ├── reconcile.ts                # specforge reconcile (Smart Sync)
+│   ├── publish.ts                  # specforge publish (GitOps)
+│   ├── ...
 ├── core/
-│   ├── artifact-graph/
-│   │   ├── types.ts                # Zod schemas y tipos TypeScript
-│   │   ├── graph.ts                # ArtifactGraph (DAG + Kahn's algorithm)
-│   │   ├── state.ts                # Detección de estado en filesystem
-│   │   ├── resolver.ts             # Resolución de schemas (proyecto → built-in)
-│   │   ├── instruction-loader.ts   # Generación de prompts para IA
-│   │   ├── schemas/                # Schemas YAML built-in
-│   │   │   ├── spec-driven.yaml
-│   │   │   └── tdd.yaml
-│   │   └── index.ts                # Barrel exports
-│   ├── templates/                  # Templates de artefactos
-│   │   ├── proposal.md
-│   │   ├── spec.md
-│   │   ├── design.md
-│   │   └── tasks.md
-│   ├── init.ts                     # Lógica de inicialización
-│   ├── change.ts                   # CRUD de cambios
-│   ├── project-config.ts           # Carga/guardado config proyecto
-│   ├── global-config.ts            # Carga/guardado config global
+│   ├── ai-adapters/                # Adaptadores para Cursor, Cline, Windsurf, Copilot, RooCode
+│   ├── artifact-graph/             # ArtifactGraph (DAG)
 │   ├── plugins.ts                  # Sistema de plugins y hooks
-│   ├── ai-provider.ts              # Abstracción de providers IA
-│   ├── diff-merge.ts               # Diff y merge de specs
-│   ├── conflicts.ts                # Detección de conflictos
-│   ├── export.ts                   # Generación de reportes
-│   ├── smart-validate.ts           # Validación profunda con scoring
-│   ├── git-integration.ts          # Integración con Git
-│   ├── watch.ts                    # Modo watch (filesystem)
-│   └── review.ts                   # Sistema de revisión colaborativa
-├── utils/
-│   ├── constants.ts                # Constantes del framework
-│   ├── logger.ts                   # Logger con colores (chalk)
-│   ├── file-system.ts              # Operaciones de filesystem
-│   └── path-utils.ts               # Utilidades de rutas
-├── types/
-│   └── optional-deps.d.ts          # Declaraciones para deps opcionales
-└── index.ts                        # API pública (barrel exports)
+│   ├── smart-validate.ts           # Validación profunda y Auto-Healing Prompts
+│   └── ...
+├── plugins/
+│   ├── asana/                      # Plugin oficial Asana
+│   └── github/                     # Plugin oficial GitHub
+├── telemetry/                      # Módulo de métricas (PostHog)
+└── index.ts                        # API pública
 ```
 
 ### Tecnologías
 
-| Componente | Tecnología |
-|------------|------------|
-| Lenguaje | TypeScript 5.5+ (ESM, strict mode) |
-| CLI | Commander.js 12 |
-| Validación | Zod 3.23 |
-| YAML | yaml 2.5 |
-| Globbing | fast-glob 3.3 |
-| Colores | chalk 5.3 |
-| Testing | Vitest 2.0 + @vitest/coverage-v8 |
-| Linting | ESLint 9 (flat config) + typescript-eslint |
-| Formato | Prettier 3.3 |
+| Componente       | Tecnología                                    |
+| ---------------- | --------------------------------------------- |
+| Lenguaje         | TypeScript 5.5+ (ESM, strict mode)            |
+| CLI              | Commander.js 12, `@clack/prompts`, `omelette` |
+| Validación       | Zod 3.23                                      |
+| YAML             | yaml 2.5                                      |
+| Git              | `simple-git`, GitHub CLI                      |
+| Colores & UI     | chalk 5.3, `ora`                              |
+| IA & Agent Tools | Adaptadores nativos, API Provider abstracta   |
+| Telemetría       | `posthog-node`                                |
+| Testing          | Vitest 2.0 + @vitest/coverage-v8              |
+| CI/CD            | GitHub Actions, Changesets                    |
+| Linting          | ESLint 9 (flat config) + typescript-eslint    |
+| Formato          | Prettier 3.3                                  |
 
 ---
 

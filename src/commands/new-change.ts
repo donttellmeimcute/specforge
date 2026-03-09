@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { createChange } from '../core/change.js';
 import { findProjectRoot } from '../utils/path-utils.js';
 import { logger } from '../utils/logger.js';
-import { input, confirm } from '@inquirer/prompts';
+import { text, confirm } from '@clack/prompts';
 
 export const newChangeCommand = new Command('new')
   .description('Create a new change or artifact')
@@ -20,36 +20,44 @@ export const newChangeCommand = new Command('new')
       try {
         const projectRoot = await findProjectRoot();
         if (!projectRoot) {
-          logger.error(
-            'Not inside a SpecForge project. Run `specforge init` first.',
-          );
+          logger.error('Not inside a SpecForge project. Run `specforge init` first.');
           process.exitCode = 1;
           return;
         }
 
-        let changeName = name;
-        if (!changeName) {
-          changeName = await input({ 
+        let changeName: string;
+        if (name) {
+          changeName = name;
+        } else {
+          const inputName = await text({
             message: 'Enter a name for the new change (kebab-case):',
-            validate: (value) => /^[a-z0-9][a-z0-9-]*$/.test(value) || 'Name must be lowercase alphanumeric with hyphens'
+            validate: (value) =>
+              value && /^[a-z0-9][a-z0-9-]*$/.test(value)
+                ? undefined
+                : 'Name must be lowercase alphanumeric with hyphens',
           });
-          
-          if (await confirm({ message: 'Do you want to link an Asana task?', default: false })) {
-             options.asana = await input({ message: 'Enter Asana Task ID:' });
+          if (typeof inputName === 'symbol' || !inputName) return;
+          changeName = inputName as string;
+
+          const wantAsana = await confirm({
+            message: 'Do you want to link an Asana task?',
+            initialValue: false,
+          });
+          if (wantAsana === true) {
+            const asanaId = await text({ message: 'Enter Asana Task ID:' });
+            if (typeof asanaId === 'string') options.asana = asanaId;
           }
         }
 
         if (!changeName) {
-           logger.error('Change name is required.');
-           process.exitCode = 1;
-           return;
+          logger.error('Change name is required.');
+          process.exitCode = 1;
+          return;
         }
 
         await createChange(projectRoot, changeName, options);
       } catch (error) {
-        logger.error(
-          error instanceof Error ? error.message : String(error),
-        );
+        logger.error(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     },

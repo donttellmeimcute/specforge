@@ -11,9 +11,7 @@ import {
 import { logger } from '../utils/logger.js';
 
 /** Load and validate the project config from .specforge/config.yaml */
-export async function loadProjectConfig(
-  projectRoot: string,
-): Promise<ProjectConfig> {
+export async function loadProjectConfig(projectRoot: string): Promise<ProjectConfig> {
   const configPath = resolveSpecforgePath(projectRoot, CONFIG_FILE);
   const content = await readTextFile(configPath);
 

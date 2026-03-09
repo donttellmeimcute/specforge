@@ -16,8 +16,23 @@ import { exportCommand } from '../commands/export.js';
 import { contextCommand } from '../commands/context.js';
 import { watchCommand } from '../commands/watch.js';
 import { reviewCommand } from '../commands/review.js';
-import { syncCommand } from '../commands/sync/index.js';
-import { initTelemetry, trackCommand, trackError, closeTelemetry } from '../telemetry/index.js';
+import { reconcileCommand } from '../commands/reconcile.js';
+import { publishCommand } from '../commands/publish.js';
+import {
+  initTelemetry,
+  trackCommand,
+  trackError,
+  closeTelemetry,
+} from '../telemetry/index.js';
+import { pluginManager } from '../core/plugins.js';
+import { asanaPlugin } from '../plugins/asana/index.js';
+import { githubPlugin } from '../plugins/github/index.js';
+// @ts-expect-error missing type definitions for omelette
+import omelette from 'omelette';
+
+// Load default official plugins
+pluginManager.register(asanaPlugin);
+pluginManager.register(githubPlugin);
 
 const require = createRequire(import.meta.url);
 const pkg = require('../../package.json') as { version: string; description: string };
@@ -29,6 +44,16 @@ program
   .description(pkg.description)
   .version(pkg.version, '-v, --version', 'Show the current version');
 
+// Setup omelette autocompletion
+const completion = omelette('specforge');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+completion.on('complete', (env: any) => {
+  // A simple completion tree
+  const cmds = program.commands.map((c) => c.name());
+  env.reply(cmds);
+});
+completion.init();
+
 // Global preAction hook for Telemetry and unified setup
 program.hook('preAction', async (_thisCommand, actionCommand) => {
   await initTelemetry();
@@ -38,6 +63,19 @@ program.hook('preAction', async (_thisCommand, actionCommand) => {
 program.hook('postAction', async () => {
   await closeTelemetry();
 });
+
+// Create sync command group for plugins
+const syncGroup = new Command('sync').description(
+  'Sync external systems (Asana, GitHub)',
+);
+for (const p of pluginManager.getPlugins()) {
+  if (p.commands) {
+    for (const cmd of p.commands) {
+      syncGroup.addCommand(cmd);
+    }
+  }
+}
+program.addCommand(syncGroup);
 
 // Group commands for better scaling
 const changeGroup = new Command('change-group')
@@ -70,7 +108,8 @@ program.addCommand(exportCommand);
 program.addCommand(watchCommand);
 program.addCommand(reviewCommand);
 program.addCommand(contextCommand);
-program.addCommand(syncCommand);
+program.addCommand(reconcileCommand);
+program.addCommand(publishCommand);
 
 // Add global error handler for telemetry
 program.exitOverride();
@@ -79,7 +118,10 @@ try {
   program.parse(process.argv);
 } catch (err) {
   if (err instanceof Error) {
-    if ((err as any).code !== 'commander.helpDisplayed' && (err as any).code !== 'commander.version') {
+    if (
+      (err as any).code !== 'commander.helpDisplayed' &&
+      (err as any).code !== 'commander.version'
+    ) {
       trackError(program.args[0] || 'unknown', err);
     }
   }

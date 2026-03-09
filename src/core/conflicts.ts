@@ -14,9 +14,7 @@ export interface Conflict {
 /**
  * Detect conflicts between active changes that modify the same spec domains.
  */
-export async function detectConflicts(
-  projectRoot: string,
-): Promise<Conflict[]> {
+export async function detectConflicts(projectRoot: string): Promise<Conflict[]> {
   const changesDir = resolveSpecforgePath(projectRoot, CHANGES_DIR);
 
   if (!(await pathExists(changesDir))) {

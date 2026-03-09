@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { resolveSchema, listAvailableSchemas } from '../../src/core/artifact-graph/resolver.js';
+import {
+  resolveSchema,
+  listAvailableSchemas,
+} from '../../src/core/artifact-graph/resolver.js';
 import { writeTextFile } from '../../src/utils/file-system.js';
 import { SPECFORGE_DIR, SCHEMAS_DIR } from '../../src/utils/constants.js';
 

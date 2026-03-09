@@ -16,6 +16,8 @@ export interface GitIntegration {
   createBranch(name: string): Promise<void>;
   /** Stage files and commit */
   commit(message: string, files?: string[]): Promise<void>;
+  /** Push to remote */
+  push(remote?: string, branch?: string, options?: string[]): Promise<void>;
   /** Get list of changed files */
   status(): Promise<GitFileStatus[]>;
 }
@@ -29,9 +31,7 @@ export interface GitFileStatus {
  * Create a git integration instance.
  * Dynamically imports simple-git if available.
  */
-export async function createGitIntegration(
-  cwd: string,
-): Promise<GitIntegration | null> {
+export async function createGitIntegration(cwd: string): Promise<GitIntegration | null> {
   // Check if .git exists
   const gitDir = join(cwd, '.git');
   if (!(await pathExists(gitDir))) {
@@ -63,6 +63,11 @@ export async function createGitIntegration(
           await git.add('.');
         }
         await git.commit(message);
+      },
+
+      async push(remote = 'origin', branch?: string, options?: string[]): Promise<void> {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (git as any).push(remote, branch, options);
       },
 
       async status(): Promise<GitFileStatus[]> {

@@ -59,9 +59,7 @@ export async function resolveSchema(
 }
 
 /** List available schema names */
-export async function listAvailableSchemas(
-  projectRoot?: string,
-): Promise<string[]> {
+export async function listAvailableSchemas(projectRoot?: string): Promise<string[]> {
   const names = new Set<string>();
 
   // Built-in schemas
@@ -96,10 +94,7 @@ export async function listAvailableSchemas(
   return [...names].sort();
 }
 
-function parseAndValidateSchema(
-  content: string,
-  filePath: string,
-): WorkflowSchema {
+function parseAndValidateSchema(content: string, filePath: string): WorkflowSchema {
   let raw: unknown;
   try {
     raw = parseYaml(content);

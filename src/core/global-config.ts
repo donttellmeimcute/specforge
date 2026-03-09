@@ -3,11 +3,7 @@ import { homedir } from 'node:os';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { readTextFile, writeTextFile } from '../utils/file-system.js';
 import { GLOBAL_CONFIG_DIR, CONFIG_FILE } from '../utils/constants.js';
-import {
-  GlobalConfig,
-  GlobalConfigSchema,
-  safeParse,
-} from './artifact-graph/types.js';
+import { GlobalConfig, GlobalConfigSchema, safeParse } from './artifact-graph/types.js';
 import { logger } from '../utils/logger.js';
 
 /** Get the path to the global config directory */
@@ -20,7 +16,7 @@ export function getGlobalConfigDir(): string {
   // Windows: %APPDATA%, others: ~/.config
   const base =
     process.platform === 'win32'
-      ? process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming')
+      ? (process.env['APPDATA'] ?? join(homedir(), 'AppData', 'Roaming'))
       : join(homedir(), '.config');
 
   return join(base, GLOBAL_CONFIG_DIR);

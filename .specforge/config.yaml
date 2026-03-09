@@ -1,0 +1,11 @@
+schema: spec-driven
+context: |
+  Este proyecto utiliza Asana para el tracking de issues y GitHub para el control de versiones. 
+  Todas las funcionalidades deben referenciar un ID de Asana válido.
+rules:
+  proposal:
+    - 'El proposal DEBE incluir un enlace directo o referencia al ticket de Asana.'
+  tasks:
+    - 'Las tareas de implementación deben poder mapearse de regreso a los criterios de aceptación definidos en Asana.'
+git:
+  conventionalCommits: true

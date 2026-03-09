@@ -15,28 +15,26 @@ export const instructionsCommand = new Command('instructions')
   .argument('<change>', 'Name of the change')
   .argument('[artifact]', 'Specific artifact (auto-detects next if omitted)')
   .option('--json', 'Output as JSON')
-  .option('--adapter <id>', 'Generate specific format for AI assistant (cursor, cline, copilot, windsurf)')
+  .option(
+    '--adapter <id>',
+    'Generate specific format for AI assistant (cursor, cline, roocode, copilot, windsurf)',
+  )
+  .option('-o, --out <path>', 'Write the instructions to a file (e.g. prompt.md)')
   .action(
     async (
       changeName: string,
       artifactId: string | undefined,
-      options: { json?: boolean; adapter?: string },
+      options: { json?: boolean; adapter?: string; out?: string },
     ) => {
       try {
         const projectRoot = await findProjectRoot();
         if (!projectRoot) {
-          logger.error(
-            'Not inside a SpecForge project. Run `specforge init` first.',
-          );
+          logger.error('Not inside a SpecForge project. Run `specforge init` first.');
           process.exitCode = 1;
           return;
         }
 
-        const changeDir = resolveSpecforgePath(
-          projectRoot,
-          CHANGES_DIR,
-          changeName,
-        );
+        const changeDir = resolveSpecforgePath(projectRoot, CHANGES_DIR, changeName);
 
         const metadata = await loadChangeMetadata(changeDir);
         if (!metadata) {
@@ -79,21 +77,29 @@ export const instructionsCommand = new Command('instructions')
           if (adapter) {
             instructions = adapter.formatForAssistant(instructions);
           } else {
-            logger.warn(`AI Adapter "${options.adapter}" not found, using generic format.`);
+            logger.warn(
+              `AI Adapter "${options.adapter}" not found, using generic format.`,
+            );
           }
         }
 
-        if (options.json) {
+        if (options.out) {
+          const { writeTextFile } = await import('../utils/file-system.js');
+          await writeTextFile(options.out, instructions);
+          logger.info(`Instructions written to ${options.out}`);
+        } else if (options.json) {
           logger.out(
-            JSON.stringify({ change: changeName, artifact: targetId, instructions }, null, 2),
+            JSON.stringify(
+              { change: changeName, artifact: targetId, instructions },
+              null,
+              2,
+            ),
           );
         } else {
           logger.out(instructions);
         }
       } catch (error) {
-        logger.error(
-          error instanceof Error ? error.message : String(error),
-        );
+        logger.error(error instanceof Error ? error.message : String(error));
         process.exitCode = 1;
       }
     },

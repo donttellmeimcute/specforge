@@ -63,27 +63,31 @@ export async function watchChange(
         try {
           logger.info('[watch] Running deep validation...');
           const validationResult = await deepValidate(projectRoot, changeName);
-          
+
           if (validationResult.issues.length > 0) {
-            const warningsAndErrors = validationResult.issues.filter(i => i.level === 'error' || i.level === 'warning');
-            
+            const warningsAndErrors = validationResult.issues.filter(
+              (i) => i.level === 'error' || i.level === 'warning',
+            );
+
             if (warningsAndErrors.length > 0) {
-              logger.warn(`[watch] Found ${warningsAndErrors.length} issues. Triggering auto-fix...`);
-              
+              logger.warn(
+                `[watch] Found ${warningsAndErrors.length} issues. Triggering auto-fix...`,
+              );
+
               const globalConfig = await loadGlobalConfig();
               if (globalConfig.ai) {
                 const aiProvider = await createAIProvider({
                   provider: globalConfig.ai.provider || 'openai',
                   model: globalConfig.ai.model,
                   apiKey: globalConfig.ai.apiKey,
-                  baseUrl: globalConfig.ai.baseUrl
+                  baseUrl: globalConfig.ai.baseUrl,
                 });
-                
+
                 // Construct a prompt with the issues and ask AI to fix them
                 const prompt = `You are an expert AI resolving specification issues for a SpecForge project.
 The following issues were found in the current state of the artifacts:
 
-${warningsAndErrors.map(i => `- [${i.level.toUpperCase()}] ${i.artifact || 'general'}: ${i.message}`).join('\n')}
+${warningsAndErrors.map((i) => `- [${i.level.toUpperCase()}] ${i.artifact || 'general'}: ${i.message}`).join('\n')}
 
 Based on the rules of SpecForge, suggest the precise Markdown content to fix the most critical artifact. 
 Output ONLY a JSON block like:
@@ -92,7 +96,7 @@ Output ONLY a JSON block like:
   "reasoning": "short explanation",
   "newContent": "complete new markdown content"
 }`;
-                
+
                 const response = await aiProvider.generate(prompt);
                 // Attempt to parse the JSON and write it
                 try {
@@ -105,29 +109,42 @@ Output ONLY a JSON block like:
                       if (fileToUpdate) {
                         const { join } = await import('node:path');
                         const { writeTextFile } = await import('../utils/file-system.js');
-                        await writeTextFile(join(changeDir, fileToUpdate), fixData.newContent);
-                        logger.success(`[watch] Auto-fix applied to ${fileToUpdate}: ${fixData.reasoning}`);
+                        await writeTextFile(
+                          join(changeDir, fileToUpdate),
+                          fixData.newContent,
+                        );
+                        logger.success(
+                          `[watch] Auto-fix applied to ${fileToUpdate}: ${fixData.reasoning}`,
+                        );
                       } else {
-                        logger.info(`[watch] AI suggested fix for ${fixData.artifactToFix} but matchedFiles was empty.`);
+                        logger.info(
+                          `[watch] AI suggested fix for ${fixData.artifactToFix} but matchedFiles was empty.`,
+                        );
                       }
                     } else {
-                      logger.info(`[watch] AI suggested fix for ${fixData.artifactToFix} but no matched files found.`);
+                      logger.info(
+                        `[watch] AI suggested fix for ${fixData.artifactToFix} but no matched files found.`,
+                      );
                     }
                   }
                 } catch (parseErr) {
                   logger.warn('[watch] AI did not return a valid fix format.');
                 }
               } else {
-                logger.warn('[watch] Cannot auto-fix: AI is not configured in global config.');
+                logger.warn(
+                  '[watch] Cannot auto-fix: AI is not configured in global config.',
+                );
               }
             }
           } else {
             logger.success('[watch] Deep validation passed. Code is compliant.');
           }
         } catch (autoFixErr) {
-           logger.error(`[watch] Auto-fix error: ${autoFixErr instanceof Error ? autoFixErr.message : String(autoFixErr)}`);
+          logger.error(
+            `[watch] Auto-fix error: ${autoFixErr instanceof Error ? autoFixErr.message : String(autoFixErr)}`,
+          );
         } finally {
-           isProcessingAutoFix = false;
+          isProcessingAutoFix = false;
         }
       }
 

@@ -39,7 +39,11 @@ export async function generateAgentContext(
   // Collect status snapshot for the requested (or most recent active) change
   let statusSnapshot = '';
   try {
-    statusSnapshot = await buildStatusSnapshot(projectRoot, config.schema, options.changeName);
+    statusSnapshot = await buildStatusSnapshot(
+      projectRoot,
+      config.schema,
+      options.changeName,
+    );
   } catch {
     // Non-fatal — status snapshot is best-effort
   }
@@ -75,7 +79,8 @@ interface RulesContentParams {
 }
 
 function buildRulesContent(params: RulesContentParams): string {
-  const { schema, schemaDescription, artifactIds, projectContext, statusSnapshot } = params;
+  const { schema, schemaDescription, artifactIds, projectContext, statusSnapshot } =
+    params;
   const artifactList = artifactIds.map((id) => `  - \`${id}\``).join('\n');
 
   return `# SpecForge Agent Context
@@ -200,9 +205,7 @@ async function buildStatusSnapshot(
       const summary = graph.getSummary();
 
       lines.push(`**Change: ${name}**`);
-      lines.push(
-        `- completed: ${summary.completed.join(', ') || 'none'}`,
-      );
+      lines.push(`- completed: ${summary.completed.join(', ') || 'none'}`);
       if (summary.diverged.length > 0) {
         lines.push(`- diverged (out-of-order): ${summary.diverged.join(', ')}`);
       }
