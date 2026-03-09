@@ -149,9 +149,13 @@ async function createClaudeCodeProvider(config: AIConfig): Promise<AIProvider> {
       }
 
       try {
-        const { stdout } = await execFileAsync('claude', args, {
+        const commandName = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+        const finalArgs = ['--no-install', 'claude', ...args];
+        
+        const { stdout } = await execFileAsync(commandName, finalArgs, {
           maxBuffer: 1024 * 1024 * 10, // 10 MB
           timeout: 300_000, // 5 min
+          shell: process.platform === 'win32' // Required on Windows to resolve .cmd correctly
         });
         return stdout;
       } catch (error: unknown) {
