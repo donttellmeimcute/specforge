@@ -12,7 +12,7 @@ import { loadChangeMetadata } from '../core/change.js';
 import { CHANGES_DIR, ARCHIVE_DIR, CONFIG_FILE, METADATA_FILE } from '../utils/constants.js';
 import { pathExists, readTextFile } from '../utils/file-system.js';
 import { parse as parseYaml } from 'yaml';
-import { deepValidate, checkConsistency } from '../core/smart-validate.js';
+import { deepValidate, checkConsistency, ValidationResult } from '../core/smart-validate.js';
 
 export const validateCommand = new Command('validate')
   .description('Validate specs, changes, and configuration')
@@ -31,6 +31,7 @@ export const validateCommand = new Command('validate')
       }
 
       const issues: Array<{ level: 'error' | 'warning'; target: string; message: string }> = [];
+      const deepResults = new Map<string, ValidationResult>();
 
       // Validate config
       const configPath = resolveSpecforgePath(projectRoot, CONFIG_FILE);
@@ -134,6 +135,9 @@ export const validateCommand = new Command('validate')
             // Deep validation
             if (options.deep) {
               const deepResult = await deepValidate(graph, changeDir);
+              // Attach deep result so it is accessible for JSON output
+              deepResults.set(name, deepResult);
+
               for (const issue of deepResult.issues) {
                 issues.push({
                   level: issue.level === 'info' ? 'warning' : issue.level,
@@ -163,7 +167,32 @@ export const validateCommand = new Command('validate')
 
       // Output
       if (options.json) {
-        logger.out(JSON.stringify({ valid: issues.filter((i) => i.level === 'error').length === 0, issues }, null, 2));
+        const valid = issues.filter((i) => i.level === 'error').length === 0;
+
+        if (options.deep && deepResults.size > 0) {
+          // Aggregate scores across all validated changes
+          const scores = [...deepResults.values()].map((r) => r.score);
+          const aggregateScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+          const allSelfHealing = [...deepResults.entries()].flatMap(([name, r]) =>
+            (r.selfHealingInstructions ?? []).map((inst) => `[${name}] ${inst}`),
+          );
+          logger.out(
+            JSON.stringify(
+              {
+                valid,
+                score: aggregateScore,
+                issues,
+                ...(allSelfHealing.length > 0
+                  ? { selfHealingInstructions: allSelfHealing }
+                  : {}),
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.out(JSON.stringify({ valid, issues }, null, 2));
+        }
         return;
       }
 
@@ -183,6 +212,18 @@ export const validateCommand = new Command('validate')
         console.error(chalk.yellow.bold('  Warnings:'));
         for (const issue of warnings) {
           console.error(chalk.yellow(`  ⚠ [${issue.target}] ${issue.message}`));
+        }
+        console.error('');
+      }
+
+      // Show deep score in human-readable output
+      if (options.deep && deepResults.size > 0) {
+        const scores = [...deepResults.values()].map((r) => r.score);
+        const aggregateScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        const scoreColor = aggregateScore >= 90 ? chalk.green : aggregateScore >= 60 ? chalk.yellow : chalk.red;
+        console.error(scoreColor(`  Score: ${aggregateScore}/100`));
+        if (aggregateScore < 90) {
+          console.error(chalk.dim('  Run with --json to get self-healing instructions for the agent.'));
         }
         console.error('');
       }

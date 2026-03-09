@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ArtifactGraph } from '../../src/core/artifact-graph/graph.js';
@@ -88,4 +88,36 @@ describe('detectArtifactStates', () => {
     }
     expect(graph.isComplete()).toBe(true);
   });
+
+  it('should mark artifact as diverged when created before its dependency', async () => {
+    // design.md exists, but proposal.md does NOT exist yet (out-of-order)
+    await writeTextFile(join(tempDir, 'design.md'), '# Design (written before proposal)');
+
+    const graph = new ArtifactGraph(schema);
+    await detectArtifactStates(graph, tempDir);
+
+    expect(graph.getNode('design')!.status).toBe('diverged');
+    // proposal has no files — should be ready (no deps)
+    expect(graph.getNode('proposal')!.status).toBe('ready');
+  });
+
+  it('should mark artifact as needs-sync when a dependency was updated after it', async () => {
+    const proposalPath = join(tempDir, 'proposal.md');
+    const designPath = join(tempDir, 'design.md');
+
+    await writeTextFile(designPath, '# Design');
+    await writeTextFile(proposalPath, '# Proposal');
+
+    // Make design older than proposal by setting its mtime to the past
+    const past = new Date(Date.now() - 10_000);
+    await utimes(designPath, past, past);
+
+    const graph = new ArtifactGraph(schema);
+    await detectArtifactStates(graph, tempDir);
+
+    // proposal was modified after design → design needs-sync
+    expect(graph.getNode('design')!.status).toBe('needs-sync');
+    expect(graph.getNode('proposal')!.status).toBe('completed');
+  });
+
 });

@@ -134,6 +134,10 @@ export const ArtifactStatus = z.enum([
   'ready',
   'in-progress',
   'completed',
+  /** Files exist but one or more upstream dependencies are not yet completed (out-of-order editing). */
+  'diverged',
+  /** Completed, but one or more dependency files are newer — may need re-sync. */
+  'needs-sync',
 ]);
 
 export type ArtifactStatus = z.infer<typeof ArtifactStatus>;

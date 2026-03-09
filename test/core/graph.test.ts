@@ -160,6 +160,35 @@ describe('ArtifactGraph', () => {
 
       expect(graph.getNextArtifacts()).toEqual([]);
     });
+
+    it('should include diverged nodes as actionable', () => {
+      const graph = new ArtifactGraph(specDrivenSchema);
+      // specs is diverged (has files but proposal is not completed)
+      graph.updateNode('specs', 'diverged', ['specs/spec.md']);
+
+      const next = graph.getNextArtifacts();
+      const ids = next.map((n) => n.definition.id);
+      expect(ids).toContain('specs');
+    });
+
+    it('should include needs-sync nodes as actionable', () => {
+      const graph = new ArtifactGraph(specDrivenSchema);
+      graph.updateNode('proposal', 'completed', ['proposal.md']);
+      graph.updateNode('specs', 'needs-sync', ['specs/spec.md']);
+
+      const next = graph.getNextArtifacts();
+      const ids = next.map((n) => n.definition.id);
+      expect(ids).toContain('specs');
+    });
+
+    it('should treat needs-sync deps as satisfying readiness for children', () => {
+      const graph = new ArtifactGraph(specDrivenSchema);
+      graph.updateNode('proposal', 'needs-sync', ['proposal.md']);
+      // specs/design should now be "ready" even though proposal is needs-sync
+      const next = graph.getNextArtifacts();
+      const ids = next.map((n) => n.definition.id);
+      expect(ids).toEqual(expect.arrayContaining(['proposal', 'specs', 'design']));
+    });
   });
 
   describe('updateNode', () => {
@@ -215,6 +244,16 @@ describe('ArtifactGraph', () => {
       expect(summary.completed).toContain('proposal');
       expect(summary.ready).toEqual(expect.arrayContaining(['specs', 'design']));
       expect(summary.pending).toContain('tasks');
+    });
+
+    it('should include diverged and needs-sync in summary', () => {
+      const graph = new ArtifactGraph(specDrivenSchema);
+      graph.updateNode('specs', 'diverged', ['specs/spec.md']);
+      graph.updateNode('design', 'needs-sync', ['design.md']);
+
+      const summary = graph.getSummary();
+      expect(summary.diverged).toContain('specs');
+      expect(summary['needs-sync']).toContain('design');
     });
   });
 });

@@ -13,6 +13,7 @@ import { generateCommand } from '../commands/generate.js';
 import { diffCommand, mergeCommand } from '../commands/diff-merge.js';
 import { conflictsCommand } from '../commands/conflicts.js';
 import { exportCommand } from '../commands/export.js';
+import { contextCommand } from '../commands/context.js';
 import { watchCommand } from '../commands/watch.js';
 import { reviewCommand } from '../commands/review.js';
 
@@ -42,5 +43,6 @@ program.addCommand(conflictsCommand);
 program.addCommand(exportCommand);
 program.addCommand(watchCommand);
 program.addCommand(reviewCommand);
+program.addCommand(contextCommand);
 
 program.parse(process.argv);

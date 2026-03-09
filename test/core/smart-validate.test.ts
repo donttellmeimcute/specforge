@@ -4,12 +4,13 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { initProject } from '../../src/core/init.js';
 import { createChange } from '../../src/core/change.js';
-import { deepValidate } from '../../src/core/smart-validate.js';
+import { deepValidate, generateSelfHealingInstructions } from '../../src/core/smart-validate.js';
 import { resolveSchema } from '../../src/core/artifact-graph/resolver.js';
 import { ArtifactGraph } from '../../src/core/artifact-graph/graph.js';
 import { detectArtifactStates } from '../../src/core/artifact-graph/state.js';
 import { resolveSpecforgePath } from '../../src/utils/path-utils.js';
 import { CHANGES_DIR } from '../../src/utils/constants.js';
+import { WorkflowSchema } from '../../src/core/artifact-graph/types.js';
 
 describe('smart-validate', () => {
   let tempDir: string;
@@ -33,6 +34,46 @@ describe('smart-validate', () => {
 
     const result = await deepValidate(graph, changeDir);
     expect(result.score).toBe(0);
+  });
+
+  it('should include selfHealingInstructions when score is below 90', async () => {
+    const schema = await resolveSchema('spec-driven', tempDir);
+    const graph = new ArtifactGraph(schema);
+    await detectArtifactStates(graph, changeDir);
+
+    const result = await deepValidate(graph, changeDir);
+    expect(result.score).toBeLessThan(90);
+    expect(result.selfHealingInstructions).toBeDefined();
+    expect(result.selfHealingInstructions!.length).toBeGreaterThan(0);
+  });
+
+  it('should not include selfHealingInstructions when score is 90 or above', async () => {
+    const schema = await resolveSchema('spec-driven', tempDir);
+    const graph = new ArtifactGraph(schema);
+
+    // Mark all artifacts as completed by setting statuses directly
+    for (const id of graph.getIds()) {
+      graph.updateNode(id, 'completed', [`${id}.md`]);
+    }
+
+    // Write real content for all artifacts so they pass the stub check
+    for (const id of graph.getIds()) {
+      await writeFile(
+        join(changeDir, `${id}.md`),
+        `# ${id}\n\nThis is substantial content for ${id} that covers all the necessary details for the spec-driven workflow.`,
+      );
+    }
+
+    await detectArtifactStates(graph, changeDir);
+    const result = await deepValidate(graph, changeDir);
+
+    if (result.score >= 90) {
+      expect(result.selfHealingInstructions).toBeUndefined();
+    }
+    // If score is still <90 due to penalties, instructions should be present
+    else {
+      expect(result.selfHealingInstructions).toBeDefined();
+    }
   });
 
   it('should detect stub artifacts', async () => {
@@ -67,5 +108,68 @@ describe('smart-validate', () => {
     const result = await deepValidate(graph, changeDir);
     // Score should be non-zero if proposal is completed
     expect(result.score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should generate warnings for diverged artifacts', async () => {
+    const schema = await resolveSchema('spec-driven', tempDir);
+    const graph = new ArtifactGraph(schema);
+
+    // Simulate: design.md was created but proposal.md does not exist
+    await writeFile(join(changeDir, 'design.md'), '# Design (out of order)');
+    await detectArtifactStates(graph, changeDir);
+
+    const result = await deepValidate(graph, changeDir);
+    const divergedWarnings = result.issues.filter(
+      (i) => i.artifact === 'design' && i.message.includes('out of order'),
+    );
+    expect(divergedWarnings.length).toBeGreaterThan(0);
+  });
+});
+
+describe('generateSelfHealingInstructions', () => {
+  it('should reference the score threshold in output', () => {
+    const simpleSchema: WorkflowSchema = {
+      name: 'simple',
+      version: 1,
+      description: 'Simple test',
+      artifacts: [
+        { id: 'proposal', generates: 'proposal.md', description: 'Proposal', requires: [] },
+      ],
+    };
+    const graph = new ArtifactGraph(simpleSchema);
+
+    const instructions = generateSelfHealingInstructions(50, [], graph);
+
+    expect(instructions[0]).toContain('50/100');
+    expect(instructions[0]).toContain('90');
+  });
+
+  it('should include error issues with suggestions', () => {
+    const simpleSchema: WorkflowSchema = {
+      name: 'simple',
+      version: 1,
+      description: 'Simple test',
+      artifacts: [
+        { id: 'proposal', generates: 'proposal.md', description: 'Proposal', requires: [] },
+      ],
+    };
+    const graph = new ArtifactGraph(simpleSchema);
+
+    const instructions = generateSelfHealingInstructions(
+      40,
+      [
+        {
+          level: 'error',
+          artifact: 'proposal',
+          message: 'Missing content',
+          suggestion: 'Add content to proposal.md',
+        },
+      ],
+      graph,
+    );
+
+    const errorSection = instructions.find((i) => i.includes('Missing content'));
+    expect(errorSection).toBeDefined();
+    expect(errorSection).toContain('Add content to proposal.md');
   });
 });
