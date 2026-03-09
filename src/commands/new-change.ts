@@ -2,18 +2,19 @@ import { Command } from 'commander';
 import { createChange } from '../core/change.js';
 import { findProjectRoot } from '../utils/path-utils.js';
 import { logger } from '../utils/logger.js';
+import { input, confirm } from '@inquirer/prompts';
 
 export const newChangeCommand = new Command('new')
   .description('Create a new change or artifact')
-  .command('change <name>')
-  .description('Create a new change')
+  .command('change [name]')
+  .description('Create a new change (interactive if name omitted)')
   .option('-s, --schema <name>', 'Override workflow schema for this change')
   .option('-t, --tags <tags...>', 'Tags for categorization')
   .option('-a, --author <name>', 'Author identifier')
   .option('--asana <taskId>', 'Asana task ID to link and pull details from')
   .action(
     async (
-      name: string,
+      name: string | undefined,
       options: { schema?: string; tags?: string[]; author?: string; asana?: string },
     ) => {
       try {
@@ -26,7 +27,25 @@ export const newChangeCommand = new Command('new')
           return;
         }
 
-        await createChange(projectRoot, name, options);
+        let changeName = name;
+        if (!changeName) {
+          changeName = await input({ 
+            message: 'Enter a name for the new change (kebab-case):',
+            validate: (value) => /^[a-z0-9][a-z0-9-]*$/.test(value) || 'Name must be lowercase alphanumeric with hyphens'
+          });
+          
+          if (await confirm({ message: 'Do you want to link an Asana task?', default: false })) {
+             options.asana = await input({ message: 'Enter Asana Task ID:' });
+          }
+        }
+
+        if (!changeName) {
+           logger.error('Change name is required.');
+           process.exitCode = 1;
+           return;
+        }
+
+        await createChange(projectRoot, changeName, options);
       } catch (error) {
         logger.error(
           error instanceof Error ? error.message : String(error),

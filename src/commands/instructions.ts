@@ -8,17 +8,19 @@ import { detectArtifactStates } from '../core/artifact-graph/state.js';
 import { loadInstructions } from '../core/artifact-graph/instruction-loader.js';
 import { loadChangeMetadata } from '../core/change.js';
 import { CHANGES_DIR } from '../utils/constants.js';
+import { getAdapter } from '../core/ai-adapters/index.js';
 
 export const instructionsCommand = new Command('instructions')
   .description('Generate enriched instructions for an AI assistant')
   .argument('<change>', 'Name of the change')
   .argument('[artifact]', 'Specific artifact (auto-detects next if omitted)')
   .option('--json', 'Output as JSON')
+  .option('--adapter <id>', 'Generate specific format for AI assistant (cursor, cline, copilot, windsurf)')
   .action(
     async (
       changeName: string,
       artifactId: string | undefined,
-      options: { json?: boolean },
+      options: { json?: boolean; adapter?: string },
     ) => {
       try {
         const projectRoot = await findProjectRoot();
@@ -63,7 +65,7 @@ export const instructionsCommand = new Command('instructions')
           logger.info(`Auto-selected artifact: ${targetId}`);
         }
 
-        const instructions = await loadInstructions(
+        let instructions = await loadInstructions(
           graph,
           targetId,
           changeDir,
@@ -71,6 +73,15 @@ export const instructionsCommand = new Command('instructions')
           config.context,
           config.rules,
         );
+
+        if (options.adapter) {
+          const adapter = getAdapter(options.adapter);
+          if (adapter) {
+            instructions = adapter.formatForAssistant(instructions);
+          } else {
+            logger.warn(`AI Adapter "${options.adapter}" not found, using generic format.`);
+          }
+        }
 
         if (options.json) {
           logger.out(
