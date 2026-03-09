@@ -10,12 +10,15 @@ import { detectArtifactStates } from '../core/artifact-graph/state.js';
 import { loadChangeMetadata, updateChangeMetadata } from '../core/change.js';
 import { CHANGES_DIR, ARCHIVE_DIR } from '../utils/constants.js';
 import { pathExists, ensureDir } from '../utils/file-system.js';
+import { createPullRequestWithGhCli } from '../core/integrations/github.js';
+import { execSync } from 'node:child_process';
 
 export const archiveCommand = new Command('archive')
   .description('Archive a completed change')
   .argument('<change>', 'Name of the change to archive')
   .option('--force', 'Archive even if not all artifacts are completed')
-  .action(async (changeName: string, options: { force?: boolean }) => {
+  .option('--pr', 'Create a Pull Request automatically using GitHub CLI')
+  .action(async (changeName: string, options: { force?: boolean; pr?: boolean }) => {
     try {
       const projectRoot = await findProjectRoot();
       if (!projectRoot) {
@@ -70,7 +73,7 @@ export const archiveCommand = new Command('archive')
       await updateChangeMetadata(changeDir, { status: 'archived' });
 
       // Move to archive
-      const archiveDir = join(changesDir, ARCHIVE_DIR);
+      const archiveDir = resolveSpecforgePath(projectRoot, ARCHIVE_DIR);
       await ensureDir(archiveDir);
       const targetDir = join(archiveDir, changeName);
 
@@ -84,6 +87,28 @@ export const archiveCommand = new Command('archive')
 
       await rename(changeDir, targetDir);
       logger.success(`Change "${changeName}" archived.`);
+
+      if (options.pr) {
+        logger.info('Pushing to remote and creating Pull Request...');
+        try {
+          // Push to remote
+          execSync('git push -u origin HEAD', { stdio: 'inherit' });
+          
+          // Try extracting Asana ID from tags
+          const asanaTag = metadata.tags?.find(tag => tag.startsWith('asana-'));
+          const asanaId = asanaTag ? asanaTag.replace('asana-', '') : 'UNKNOWN';
+          
+          const title = `feat: ${changeName} (Asana #${asanaId})`;
+          const body = `Resolves Asana ticket #${asanaId}. Specs archived via SpecForge.`;
+          
+          createPullRequestWithGhCli(title, body);
+          logger.success('Pull Request created successfully via gh cli.');
+        } catch (error) {
+          logger.error(`Failed to create Pull Request: ${error instanceof Error ? error.message : String(error)}`);
+          // Note: we don't exit with code 1 here since archive was successful
+        }
+      }
+
     } catch (error) {
       logger.error(
         error instanceof Error ? error.message : String(error),

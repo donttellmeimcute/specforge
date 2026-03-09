@@ -10,10 +10,11 @@ export const newChangeCommand = new Command('new')
   .option('-s, --schema <name>', 'Override workflow schema for this change')
   .option('-t, --tags <tags...>', 'Tags for categorization')
   .option('-a, --author <name>', 'Author identifier')
+  .option('--asana <taskId>', 'Asana task ID to link and pull details from')
   .action(
     async (
       name: string,
-      options: { schema?: string; tags?: string[]; author?: string },
+      options: { schema?: string; tags?: string[]; author?: string; asana?: string },
     ) => {
       try {
         const projectRoot = await findProjectRoot();
